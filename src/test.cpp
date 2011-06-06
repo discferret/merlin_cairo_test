@@ -5,6 +5,8 @@
 #include <gtk/gtk.h>
 #include <cairo.h>
 #include <cmath>
+#include <iostream>
+using namespace std;
 
 const double PI = 2*acos(0.0);
 
@@ -12,11 +14,6 @@ class BasicDrawPane : public wxPanel {
 
 	public:
 		BasicDrawPane(wxFrame* parent);
-
-		void paintEvent(wxPaintEvent & evt);
-		void paintNow();
-
-		void render(wxDC& dc);
 
 		// some useful events
 		/*
@@ -30,7 +27,16 @@ class BasicDrawPane : public wxPanel {
 		 void keyReleased(wxKeyEvent& event);
 		 */
 
-		DECLARE_EVENT_TABLE()
+		void OnPaint(wxPaintEvent &WXUNUSED(event));
+		void OnSize(wxSizeEvent& event)
+		{
+			wxRect rect = GetClientRect();
+			//if(IsExposed(rect.x, rect.y, rect.width, rect.height))
+			{
+				Refresh(false);
+			}
+			event.Skip();
+		}
 };
 
 
@@ -62,40 +68,15 @@ bool MyApp::OnInit()
 	return true;
 }
 
-BEGIN_EVENT_TABLE(BasicDrawPane, wxPanel)
-// some useful events
-	/*
-	 EVT_MOTION(BasicDrawPane::mouseMoved)
-	 EVT_LEFT_DOWN(BasicDrawPane::mouseDown)
-	 EVT_LEFT_UP(BasicDrawPane::mouseReleased)
-	 EVT_RIGHT_DOWN(BasicDrawPane::rightClick)
-	 EVT_LEAVE_WINDOW(BasicDrawPane::mouseLeftWindow)
-	 EVT_KEY_DOWN(BasicDrawPane::keyPressed)
-	 EVT_KEY_UP(BasicDrawPane::keyReleased)
-	 EVT_MOUSEWHEEL(BasicDrawPane::mouseWheelMoved)
-	 */
-
-// catch paint events
-	EVT_PAINT(BasicDrawPane::paintEvent)
-
-END_EVENT_TABLE()
-
-
-// some useful events
-/*
- void BasicDrawPane::mouseMoved(wxMouseEvent& event) {}
- void BasicDrawPane::mouseDown(wxMouseEvent& event) {}
- void BasicDrawPane::mouseWheelMoved(wxMouseEvent& event) {}
- void BasicDrawPane::mouseReleased(wxMouseEvent& event) {}
- void BasicDrawPane::rightClick(wxMouseEvent& event) {}
- void BasicDrawPane::mouseLeftWindow(wxMouseEvent& event) {}
- void BasicDrawPane::keyPressed(wxKeyEvent& event) {}
- void BasicDrawPane::keyReleased(wxKeyEvent& event) {}
- */
-
 BasicDrawPane::BasicDrawPane(wxFrame* parent) :
 	wxPanel(parent)
 {
+	Connect(this->GetId(),
+			wxEVT_SIZE,
+			wxSizeEventHandler(BasicDrawPane::OnSize));
+	Connect(wxID_ANY,
+			wxEVT_PAINT,
+			wxPaintEventHandler(BasicDrawPane::OnPaint));
 }
 
 /*
@@ -104,37 +85,10 @@ BasicDrawPane::BasicDrawPane(wxFrame* parent) :
  * calling Refresh()/Update().
  */
 
-void BasicDrawPane::paintEvent(wxPaintEvent & evt)
+void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 {
 	wxPaintDC dc(this);
-	render(dc);
-}
 
-/*
- * Alternatively, you can use a clientDC to paint on the panel
- * at any time. Using this generally does not free you from
- * catching paint events, since it is possible that e.g. the window
- * manager throws away your drawing when the window comes to the
- * background, and expects you will redraw it when the window comes
- * back (by sending a paint event).
- *
- * In most cases, this will not be needed at all; simply handling
- * paint events and calling Refresh() when a refresh is needed
- * will do the job.
- */
-void BasicDrawPane::paintNow()
-{
-	wxClientDC dc(this);
-	render(dc);
-}
-
-/*
- * Here we do the actual rendering. I put it in a separate
- * method so that it can work no matter what type of DC
- * (e.g. wxPaintDC or wxClientDC) is used.
- */
-void BasicDrawPane::render(wxDC&  dc)
-{
 #if 0
 	// draw some text
 	dc.DrawText(wxT("Testing"), 40, 60);
@@ -156,7 +110,6 @@ void BasicDrawPane::render(wxDC&  dc)
 	// Look at the wxDC docs to learn how to draw other stuff
 #endif
 
-
 	wxRect rect = GetClientRect();
 
 	if(rect.width == 0 || rect.height == 0)
@@ -164,11 +117,14 @@ void BasicDrawPane::render(wxDC&  dc)
 		return;
 	}
 
+	cout << "GCR: wid " << rect.width << ", hgt " << rect.height << endl;
+
 	// If it's GTK then use the gdk_cairo_create() method. The GdkDrawable object
 	// is stored in m_window of the wxPaintDC.
 	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
 //    Render(cairo_image, rect.width, rect.height);
 
+#if 0
 cairo_text_extents_t extents;
 
 const char *utf8 = "cairo";
@@ -197,6 +153,37 @@ cairo_rel_line_to (cr, 0, -extents.height);
 cairo_rel_line_to (cr, extents.width, 0);
 cairo_rel_line_to (cr, extents.x_bearing, -extents.y_bearing);
 cairo_stroke (cr);
+#endif
+
+#define DATALEN 75000
+	float data[DATALEN];
+	float width = rect.width;
+	float height = rect.height;
+
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, 0, 0, width, height);
+	cairo_fill(cr);
+
+	cairo_set_source_rgba(cr, 1.0, 0.2, 0.2, 0.2);
+
+	for (int i=0; i<DATALEN; i++) {
+		float x = (((float)(i) / (float)(DATALEN)) * 2.0) - 1.0;
+		x *= 50.0;
+		data[i] = x == 0.0 ? 1.0 : sin(x)/(x);
+//		data[i] = ((float)rand() / ((float)RAND_MAX) * 2.0) - 1.0;
+	}
+
+	// plot
+	float CountsPerX = width / ((float)DATALEN);	// DATALEN = X_RANGE
+	float CountsPerY = height / 2.0;				// 2.0 = Y_RANGE
+
+	cairo_move_to(cr, 0,  height - ((data[0] + 1.0) * CountsPerY));
+	for (int i=0; i<DATALEN; i++) {
+//		cairo_rectangle(cr, (float)(i) * CountsPerX, height - ((data[i] + 1.0) * CountsPerY), 1.0, 1.0);
+		cairo_line_to(cr, (float)(i) * CountsPerX, height - ((data[i] + 1.0) * CountsPerY));
+	}
+//	cairo_fill(cr);
+	cairo_stroke(cr);
 
 	cairo_destroy(cr);
 }
