@@ -155,6 +155,8 @@ cairo_rel_line_to (cr, extents.x_bearing, -extents.y_bearing);
 cairo_stroke (cr);
 #endif
 
+#if 0
+#warning graph plotter
 #define DATALEN 75000
 	float data[DATALEN];
 	float width = rect.width;
@@ -184,6 +186,54 @@ cairo_stroke (cr);
 	}
 //	cairo_fill(cr);
 	cairo_stroke(cr);
+#endif
+
+#define DATALEN 750
+	float data[DATALEN];
+	for (int i=0; i<DATALEN; i++) {
+		data[i] = !(i % 250) ? DATALEN-i : i;
+	}
+
+	// based on logarithmic linechart w/ GDB+/VB.NET
+	// http://www.computer-consulting.com/logplotter.htm
+	// also see http://www.codeproject.com/KB/miscctrl/DataPlotter.aspx
+
+	int LMARGIN = 5;	// TODO add the max width of Yaxis text to this
+	int RMARGIN = 5;
+	int TMARGIN = 5;
+	int BMARGIN = 5;	// TODO add the max height of Xaxis text to this
+	int WIDTH = rect.width - LMARGIN - RMARGIN;
+	int HEIGHT = rect.height - TMARGIN - BMARGIN;
+
+	// draw outer box
+	cairo_set_source_rgb(cr, 0,0,0);	// OUTER_BORDER_COLOUR
+	cairo_set_line_width(cr, 2.0);		// OUTER_BORDER_WIDTH
+	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
+	cairo_stroke(cr);
+
+	// find X and Y minima and maxima
+	float XMIN = INFINITY, YMIN=INFINITY;
+	float XMAX = -INFINITY, YMAX=-INFINITY;
+	for (int i=0; i<DATALEN; i++) {
+		float x = ((float)i) * (1/100e6);
+		if (x < XMIN) XMIN = x;
+		if (x > XMAX) XMAX = x;
+		if (data[i] < YMIN) YMIN = data[i];
+		if (data[i] > YMAX) YMAX = data[i];
+	}
+
+	// draw X axis
+	double dashes[] = {5.0, 5.0};		// ink/skip
+	cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
+	cairo_set_line_width(cr, 1.0);		// AXIS_WIDTH
+	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
+	if (true) {	
+		// LOGARITHMIC AXIS
+		int n = (int)((log1p(XMAX)/log1p(10)) - (log1p(XMIN)/log1p(10)));
+		if (n == 0) n = 1.0;
+	} else {
+		// LINEAR
+	}
 
 	cairo_destroy(cr);
 }
