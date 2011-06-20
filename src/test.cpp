@@ -89,27 +89,7 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 {
 	wxPaintDC dc(this);
 
-#if 0
-	// draw some text
-	dc.DrawText(wxT("Testing"), 40, 60);
-
-	// draw a circle
-	dc.SetBrush(*wxGREEN_BRUSH); // green filling
-	dc.SetPen( wxPen( wxColor(255,0,0), 5 ) ); // 5-pixels-thick red outline
-	dc.DrawCircle( wxPoint(200,100), 25 /* radius */ );
-
-	// draw a rectangle
-	dc.SetBrush(*wxBLUE_BRUSH); // blue filling
-	dc.SetPen( wxPen( wxColor(255,175,175), 10 ) ); // 10-pixels-thick pink outline
-	dc.DrawRectangle( 300, 100, 400, 200 );
-
-	// draw a line
-	dc.SetPen( wxPen( wxColor(0,0,0), 3 ) ); // black line, 3 pixels thick
-	dc.DrawLine( 300, 100, 700, 300 ); // draw line across the rectangle
-
-	// Look at the wxDC docs to learn how to draw other stuff
-#endif
-
+	// Get client rect and do a sanity check
 	wxRect rect = GetClientRect();
 
 	if(rect.width == 0 || rect.height == 0)
@@ -117,12 +97,11 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		return;
 	}
 
-	cout << "GCR: wid " << rect.width << ", hgt " << rect.height << endl;
+	cout << "ClientRect: width=" << rect.width << ", height=" << rect.height << endl;
 
-	// If it's GTK then use the gdk_cairo_create() method. The GdkDrawable object
-	// is stored in m_window of the wxPaintDC.
+	// If we're running on wxGTK (GTK widget kit) then we can grab the GDKWindow
+	// and feed it straight to Cairo.
 	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
-//    Render(cairo_image, rect.width, rect.height);
 
 #if 0
 cairo_text_extents_t extents;
@@ -191,7 +170,7 @@ cairo_stroke (cr);
 #define DATALEN 750
 	float data[DATALEN];
 	for (int i=0; i<DATALEN; i++) {
-		data[i] = !(i % 250) ? DATALEN-i : i;
+		data[i] = !(i % 250) ? (DATALEN-i)*4.0 : (rand() % 5);
 	}
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
@@ -204,10 +183,11 @@ cairo_stroke (cr);
 	int BMARGIN = 5;	// TODO add the max height of Xaxis text to this
 	int WIDTH = rect.width - LMARGIN - RMARGIN;
 	int HEIGHT = rect.height - TMARGIN - BMARGIN;
+	float OUTER_BORDER_WIDTH = 2.0;
 
 	// draw outer box
 	cairo_set_source_rgb(cr, 0,0,0);	// OUTER_BORDER_COLOUR
-	cairo_set_line_width(cr, 2.0);		// OUTER_BORDER_WIDTH
+	cairo_set_line_width(cr, OUTER_BORDER_WIDTH);		// OUTER_BORDER_WIDTH
 	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
 	cairo_stroke(cr);
 
@@ -215,25 +195,118 @@ cairo_stroke (cr);
 	float XMIN = INFINITY, YMIN=INFINITY;
 	float XMAX = -INFINITY, YMAX=-INFINITY;
 	for (int i=0; i<DATALEN; i++) {
-		float x = ((float)i) * (1/100e6);
+		float x = ((float)i);
 		if (x < XMIN) XMIN = x;
 		if (x > XMAX) XMAX = x;
 		if (data[i] < YMIN) YMIN = data[i];
 		if (data[i] > YMAX) YMAX = data[i];
 	}
 
-	// draw X axis
+	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN << endl;
+	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN << endl;
+
+	cairo_set_source_rgba(cr, 0, 0, 0, 0.25);	// AXIS_COLOUR
+	cairo_set_line_width(cr, 1.0);				// AXIS_WIDTH
+
+#ifdef AXIS_DEBUG
+	cairo_set_source_rgba(cr, 1.0, 0, 0, 1.0);	// AXIS_COLOUR
 	double dashes[] = {5.0, 5.0};		// ink/skip
 	cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
 	cairo_set_line_width(cr, 1.0);		// AXIS_WIDTH
+#endif
+
+	// draw Y axis
 	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
-	if (true) {	
+	float fudge = 0.5;
+#ifndef SKIP_Y_AXIS
+	if (!true) {
+		const int LOGBASE = 10;
+
 		// LOGARITHMIC AXIS
-		int n = (int)((log1p(XMAX)/log1p(10)) - (log1p(XMIN)/log1p(10)));
-		if (n == 0) n = 1.0;
+		int n = (int)round((log1p(YMAX)/log1p(LOGBASE)) - (log1p(YMIN)/log1p(LOGBASE)));
+		if (n == 0) n = 1.0;	// avoid divide by zero
+		float d = HEIGHT / ((float)n);
+		for (int i=0; i<=n; i++) {
+			float y = TMARGIN + (HEIGHT - ((float)i * d));
+			if (i < n) {	// do not draw detailed gradations past the border
+				for (int j=1; j<=LOGBASE; j++) {
+					int dl = (int)((log1p(LOGBASE-j)/log1p(LOGBASE)) * d);
+					cairo_move_to(cr, LMARGIN + fudge, round(y - dl) + fudge);
+					cairo_line_to(cr, LMARGIN + WIDTH + fudge, round(y - dl) + fudge);
+				}
+			}
+		}
 	} else {
-		// LINEAR
+		// LINEAR AXIS
+//		int n = (YMAX - YMIN)/HEIGHT;			// number of grid lines; one every ten N steps
+//		if ((int)(YMAX-YMIN) % HEIGHT) n++;	// add one if we have a partial grid unit
+		int n = 10;
+		float d = HEIGHT / ((float)n);		// pixels between grid lines
+		for (int i=0; i<=n; i++) {
+			float y = TMARGIN + (HEIGHT - ((float)i * d));	// Y position of this grid line
+			if (i < n) {	// do not draw detailed gradations past the border
+				cairo_move_to(cr, LMARGIN + fudge, round(y) + fudge);
+				cairo_line_to(cr, LMARGIN + WIDTH + fudge, round(y) + fudge);
+			}
+		}
 	}
+#endif
+
+#ifndef SKIP_X_AXIS
+	// DRAW X AXIS
+	if (!true) {
+		const int LOGBASE = 10;
+
+		// LOGARITHMIC X AXIS
+		int n = (int)round((log1p(XMAX)/log1p(LOGBASE)) - (log1p(XMIN)/log1p(LOGBASE)));
+		if (n == 0) n = 1.0;	// avoid divide by zero
+		float d = WIDTH / ((float)n);
+		for (int i=0; i<=n; i++) {
+			float x = LMARGIN + ((float)i * d);
+			if (i < n) {	// do not draw detailed gradations past the border
+				for (int j=1; j<=LOGBASE; j++) {
+					int dl = (int)((log1p(LOGBASE-j)/log1p(LOGBASE)) * d);
+					cairo_move_to(cr, round(x + dl) + fudge, TMARGIN + fudge);
+					cairo_line_to(cr, round(x + dl) + fudge, TMARGIN + HEIGHT + fudge);
+				}
+			}
+		}
+	} else {
+		// LINEAR X AXIS
+//		int n = (XMAX - XMIN)/100;			// number of grid lines; one every ten N steps
+//		if ((int)(XMAX-XMIN) % 100) n++;	// add one if we have a partial grid unit
+		int n = 10;
+		float d = WIDTH / ((float)n);		// pixels between grid lines
+		for (int i=0; i<=n; i++) {
+			float x = LMARGIN + ((float)i * d);	// X position of this grid line
+			if (i < n) {	// do not draw detailed gradations past the border
+				cairo_move_to(cr, round(x) + fudge, TMARGIN + fudge);
+				cairo_line_to(cr, round(x) + fudge, TMARGIN + HEIGHT + fudge);
+			}
+		}
+	}
+#endif
+	// stroke the grid
+	cairo_stroke(cr);
+
+	// draw graph
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_source_rgba(cr, 1.0, 0.25, 0.25, 1.0);	// PLOT_COLOUR
+	cairo_set_line_width(cr, 1.0);						// PLOT_WIDTH
+
+//	int n = (YMAX - YMIN)/HEIGHT;		// number of grid lines; one every ten N steps
+//	if ((int)(YMAX-YMIN) % HEIGHT) n++;	// add one if we have a partial grid unit
+	int n = (YMAX - YMIN);
+	float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)n);		// pixels between grid lines
+
+	cairo_move_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0), TMARGIN+(data[0]*d));
+	for (size_t i=1; i<DATALEN; i++) {
+		float x = ((float)i)*((float)DATALEN/(float)WIDTH);
+		cairo_line_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0) + x, TMARGIN + (HEIGHT-(data[i]*d)));
+	}
+
+	// stroke the chart
+	cairo_stroke(cr);
 
 	cairo_destroy(cr);
 }
