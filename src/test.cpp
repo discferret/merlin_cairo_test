@@ -169,8 +169,9 @@ cairo_stroke (cr);
 
 #define DATALEN 750
 	float data[DATALEN];
+	float k = rand() % 128;
 	for (int i=0; i<DATALEN; i++) {
-		data[i] = !(i % 250) ? (DATALEN-i)*4.0 : (rand() % 5);
+		data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 5)) + k;
 	}
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
@@ -302,7 +303,7 @@ cairo_stroke (cr);
 	cairo_move_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0), TMARGIN+(data[0]*d));
 	for (size_t i=1; i<DATALEN; i++) {
 		float x = ((float)i)*((float)DATALEN/(float)WIDTH);
-		cairo_line_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0) + x, TMARGIN + (HEIGHT-(data[i]*d)));
+		cairo_line_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0) + x, TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0);
 	}
 
 	// stroke the chart
