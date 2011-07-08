@@ -292,7 +292,7 @@ cairo_stroke (cr);
 
 	// draw graph
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgba(cr, 1.0, 0.25, 0.25, 1.0);	// PLOT_COLOUR
+	cairo_set_source_rgba(cr, 0.00, 0.75, 0.00, 1.0);	// PLOT_COLOUR
 	cairo_set_line_width(cr, 1.0);						// PLOT_WIDTH
 
 //	int n = (YMAX - YMIN)/HEIGHT;		// number of grid lines; one every ten N steps
@@ -302,7 +302,7 @@ cairo_stroke (cr);
 
 	cairo_move_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0), TMARGIN+(data[0]*d));
 	for (size_t i=1; i<DATALEN; i++) {
-		float x = ((float)i)*((float)DATALEN/(float)WIDTH);
+		float x = ((float)i)*((float)WIDTH/(float)DATALEN);
 		cairo_line_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0) + x, TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0);
 	}
 
