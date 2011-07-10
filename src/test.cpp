@@ -103,75 +103,12 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 	// and feed it straight to Cairo.
 	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
 
-#if 0
-cairo_text_extents_t extents;
-
-const char *utf8 = "cairo";
-double x,y;
-
-cairo_select_font_face (cr, "Sans",
-    CAIRO_FONT_SLANT_NORMAL,
-    CAIRO_FONT_WEIGHT_NORMAL);
-
-cairo_set_font_size (cr, 100.0);
-cairo_text_extents (cr, utf8, &extents);
-
-x=25.0;
-y=150.0;
-
-cairo_move_to (cr, x,y);
-cairo_show_text (cr, utf8);
-
-/* draw helping lines */
-cairo_set_source_rgba (cr, 1, 0.2, 0.2, 0.6);
-cairo_set_line_width (cr, 6.0);
-cairo_arc (cr, x, y, 10.0, 0, 2*M_PI);
-cairo_fill (cr);
-cairo_move_to (cr, x,y);
-cairo_rel_line_to (cr, 0, -extents.height);
-cairo_rel_line_to (cr, extents.width, 0);
-cairo_rel_line_to (cr, extents.x_bearing, -extents.y_bearing);
-cairo_stroke (cr);
-#endif
-
-#if 0
-#warning graph plotter
-#define DATALEN 75000
-	float data[DATALEN];
-	float width = rect.width;
-	float height = rect.height;
-
-	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
-
-	cairo_set_source_rgba(cr, 1.0, 0.2, 0.2, 0.2);
-
-	for (int i=0; i<DATALEN; i++) {
-		float x = (((float)(i) / (float)(DATALEN)) * 2.0) - 1.0;
-		x *= 50.0;
-		data[i] = x == 0.0 ? 1.0 : sin(x)/(x);
-//		data[i] = ((float)rand() / ((float)RAND_MAX) * 2.0) - 1.0;
-	}
-
-	// plot
-	float CountsPerX = width / ((float)DATALEN);	// DATALEN = X_RANGE
-	float CountsPerY = height / 2.0;				// 2.0 = Y_RANGE
-
-	cairo_move_to(cr, 0,  height - ((data[0] + 1.0) * CountsPerY));
-	for (int i=0; i<DATALEN; i++) {
-//		cairo_rectangle(cr, (float)(i) * CountsPerX, height - ((data[i] + 1.0) * CountsPerY), 1.0, 1.0);
-		cairo_line_to(cr, (float)(i) * CountsPerX, height - ((data[i] + 1.0) * CountsPerY));
-	}
-//	cairo_fill(cr);
-	cairo_stroke(cr);
-#endif
-
 #define DATALEN 750
+	// generate some random data
 	float data[DATALEN];
 	float k = rand() % 128;
 	for (int i=0; i<DATALEN; i++) {
-		data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 5)) + k;
+		data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 50)) + k;
 	}
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
@@ -186,10 +123,12 @@ cairo_stroke (cr);
 	int HEIGHT = rect.height - TMARGIN - BMARGIN;
 	float OUTER_BORDER_WIDTH = 2.0;
 
-	// draw outer box
+	// draw outer box and background
+	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
+	cairo_set_source_rgb(cr, 1,1,1);	// CHARTAREA_FILL_COLOUR
+	cairo_fill_preserve(cr);
 	cairo_set_source_rgb(cr, 0,0,0);	// OUTER_BORDER_COLOUR
 	cairo_set_line_width(cr, OUTER_BORDER_WIDTH);		// OUTER_BORDER_WIDTH
-	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
 	cairo_stroke(cr);
 
 	// find X and Y minima and maxima
@@ -290,17 +229,17 @@ cairo_stroke (cr);
 	// stroke the grid
 	cairo_stroke(cr);
 
-	// draw graph
+	// ---- draw the graph ----
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_source_rgba(cr, 0.00, 0.75, 0.00, 1.0);	// PLOT_COLOUR
 	cairo_set_line_width(cr, 1.0);						// PLOT_WIDTH
 
-//	int n = (YMAX - YMIN)/HEIGHT;		// number of grid lines; one every ten N steps
-//	if ((int)(YMAX-YMIN) % HEIGHT) n++;	// add one if we have a partial grid unit
-	int n = (YMAX - YMIN);
-	float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)n);		// pixels between grid lines
+	float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
 
-	cairo_move_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0), TMARGIN+(data[0]*d));
+	// move to position of 1st data point
+	cairo_move_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0), TMARGIN + (HEIGHT-((data[0] - YMIN)*d)));
+
+	// draw other data points
 	for (size_t i=1; i<DATALEN; i++) {
 		float x = ((float)i)*((float)WIDTH/(float)DATALEN);
 		cairo_line_to(cr, LMARGIN + (OUTER_BORDER_WIDTH/2.0) + x, TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0);
@@ -309,5 +248,6 @@ cairo_stroke (cr);
 	// stroke the chart
 	cairo_stroke(cr);
 
+	// we're done with the cairo reference. destroy it.
 	cairo_destroy(cr);
 }
