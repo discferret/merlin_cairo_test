@@ -142,8 +142,8 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		if (data[i] > YMAX) YMAX = data[i];
 	}
 
-	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN << endl;
-	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN << endl;
+	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
+	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
 
 	cairo_set_source_rgba(cr, 0, 0, 0, 0.25);	// AXIS_COLOUR
 	cairo_set_line_width(cr, 1.0);				// AXIS_WIDTH
@@ -163,7 +163,7 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		const int LOGBASE = 10;
 
 		// LOGARITHMIC AXIS
-		int n = (int)round((log1p(YMAX)/log1p(LOGBASE)) - (log1p(YMIN)/log1p(LOGBASE)));
+		int n = (int)round((log1p(YMAX + 1)/log1p(LOGBASE)) - (log1p(YMIN)/log1p(LOGBASE)));
 		if (n == 0) n = 1.0;	// avoid divide by zero
 		float d = HEIGHT / ((float)n);
 		for (int i=0; i<=n; i++) {
@@ -178,8 +178,8 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		}
 	} else {
 		// LINEAR AXIS
-//		int n = (YMAX - YMIN)/HEIGHT;			// number of grid lines; one every ten N steps
-//		if ((int)(YMAX-YMIN) % HEIGHT) n++;	// add one if we have a partial grid unit
+//		int n = (YMAX - YMIN + 1) / HEIGHT;			// number of grid lines; one every ten N steps
+//		if ((int)(YMAX - YMIN + 1) % HEIGHT) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = HEIGHT / ((float)n);		// pixels between grid lines
 		for (int i=0; i<=n; i++) {
@@ -198,7 +198,7 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		const int LOGBASE = 10;
 
 		// LOGARITHMIC X AXIS
-		int n = (int)round((log1p(XMAX)/log1p(LOGBASE)) - (log1p(XMIN)/log1p(LOGBASE)));
+		int n = (int)round((log1p(XMAX + 1)/log1p(LOGBASE)) - (log1p(XMIN)/log1p(LOGBASE)));
 		if (n == 0) n = 1.0;	// avoid divide by zero
 		float d = WIDTH / ((float)n);
 		for (int i=0; i<=n; i++) {
@@ -213,8 +213,8 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 		}
 	} else {
 		// LINEAR X AXIS
-//		int n = (XMAX - XMIN)/100;			// number of grid lines; one every ten N steps
-//		if ((int)(XMAX-XMIN) % 100) n++;	// add one if we have a partial grid unit
+//		int n = (XMAX - XMIN + 1) / 100;			// number of grid lines; one every 100 N steps
+//		if ((int)(XMAX - XMIN + 1) % 100) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = WIDTH / ((float)n);		// pixels between grid lines
 		for (int i=0; i<=n; i++) {
