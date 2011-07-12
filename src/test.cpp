@@ -252,7 +252,9 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 	// ---- scatter plot, linear ----
 
 	// set colour and transparency (alpha)
-	cairo_set_source_rgba(cr, 0.25, 0.25, 1.0, 0.15);
+	cairo_set_source_rgba(cr, 0.55, 0, 0, 0.20);	// Red
+//	cairo_set_source_rgba(cr, 0, 0.55, 0, 0.20);	// Green
+//	cairo_set_source_rgba(cr, 0, 0, 0.55, 0.20);	// Blue
 
 	// For each block, call RECTANGLE then FILL. Calling fill() once right at
 	// the end fubars the alpha calculations.
@@ -266,7 +268,7 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 	for (size_t i=0; i<DATALEN; i++) {
 		float x = LMARGIN + (OUTER_BORDER_WIDTH/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
 		float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0;
-		cairo_rectangle(cr, x-5.0, y-5.0, 10.0, 10.0);	// x, y, wid, hgt
+		cairo_rectangle(cr, x-2.5, y-2.5, 5.0, 5.0);	// x, y, wid, hgt
 		cairo_fill(cr);
 	}
 #endif
