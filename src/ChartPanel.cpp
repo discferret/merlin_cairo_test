@@ -11,6 +11,7 @@
 
 using namespace std;
 
+
 ChartPanel::ChartPanel(wxFrame* parent) :
 	wxPanel(parent)
 {
@@ -22,12 +23,12 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 			wxPaintEventHandler(ChartPanel::OnPaint));
 }
 
+
 /*
  * Called by the system of by wxWidgets when the panel needs
  * to be redrawn. You can also trigger this call by
  * calling Refresh()/Update().
  */
-
 void ChartPanel::OnPaint(wxPaintEvent & evt)
 {
 	wxPaintDC dc(this);
@@ -40,12 +41,21 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 		return;
 	}
 
-	cout << "ClientRect: width=" << rect.width << ", height=" << rect.height << endl;
+	cout << __func__ << " - ClientRect: width=" << rect.width << ", height=" << rect.height << endl;
 
 	// If we're running on wxGTK (GTK widget kit) then we can grab the GDKWindow
 	// and feed it straight to Cairo.
 	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
 
+	// Render the chart
+	Render(cr, rect.width, rect.height);
+
+	// we're done with the cairo reference. destroy it.
+	cairo_destroy(cr);
+}
+
+void ChartPanel::Render(cairo_t *cr, long width, long height)
+{
 #define DATALEN 750
 	// generate some random data
 	float data[DATALEN];
@@ -62,8 +72,8 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 	int RMARGIN = 5;
 	int TMARGIN = 5;
 	int BMARGIN = 5;	// TODO add the max height of Xaxis text to this
-	int WIDTH = rect.width - LMARGIN - RMARGIN;
-	int HEIGHT = rect.height - TMARGIN - BMARGIN;
+	int WIDTH = width - LMARGIN - RMARGIN;
+	int HEIGHT = height - TMARGIN - BMARGIN;
 	float OUTER_BORDER_WIDTH = 2.0;
 
 	// draw outer box and background
@@ -228,7 +238,4 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 		cairo_fill(cr);
 	}
 #endif
-
-	// we're done with the cairo reference. destroy it.
-	cairo_destroy(cr);
 }

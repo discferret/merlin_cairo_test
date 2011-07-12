@@ -3,7 +3,7 @@
 
 #include "ChartPanel.h"
 
-const double PI = 2*acos(0.0);
+//const double PI = 2*acos(0.0);
 
 class MyApp: public wxApp {
 	private:
@@ -16,7 +16,6 @@ class MyApp: public wxApp {
 };
 
 IMPLEMENT_APP(MyApp)
-
 
 bool MyApp::OnInit()
 {
@@ -32,7 +31,4 @@ bool MyApp::OnInit()
 	frame->Show();
 	return true;
 }
-
-//////////////////////////////////////////////////
-
 
