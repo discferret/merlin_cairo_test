@@ -229,6 +229,7 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 	// stroke the grid
 	cairo_stroke(cr);
 
+#ifdef PLOT_LINE
 	// ---- draw the graph ----
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_source_rgba(cr, 0.00, 0.75, 0.00, 1.0);	// PLOT_COLOUR
@@ -247,6 +248,28 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 
 	// stroke the chart
 	cairo_stroke(cr);
+#else
+	// ---- scatter plot, linear ----
+
+	// set colour and transparency (alpha)
+	cairo_set_source_rgba(cr, 0.25, 0.25, 1.0, 0.15);
+
+	// For each block, call RECTANGLE then FILL. Calling fill() once right at
+	// the end fubars the alpha calculations.
+
+//	cairo_rectangle(cr, LMARGIN+50, TMARGIN, WIDTH, HEIGHT);
+//	cairo_fill(cr);
+//	cairo_rectangle(cr, LMARGIN+50, TMARGIN+50, WIDTH/2, HEIGHT/2);
+//	cairo_fill(cr);
+
+	float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
+	for (size_t i=0; i<DATALEN; i++) {
+		float x = LMARGIN + (OUTER_BORDER_WIDTH/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
+		float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0;
+		cairo_rectangle(cr, x-5.0, y-5.0, 10.0, 10.0);	// x, y, wid, hgt
+		cairo_fill(cr);
+	}
+#endif
 
 	// we're done with the cairo reference. destroy it.
 	cairo_destroy(cr);
