@@ -256,6 +256,9 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 //	cairo_set_source_rgba(cr, 0, 0.55, 0, 0.20);	// Green
 //	cairo_set_source_rgba(cr, 0, 0, 0.55, 0.20);	// Blue
 
+	cairo_set_source_rgba(cr, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));	// Kryoflux blue
+	cairo_set_source_rgba(cr, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);	// Kryoflux blue
+
 	// For each block, call RECTANGLE then FILL. Calling fill() once right at
 	// the end fubars the alpha calculations.
 
@@ -264,11 +267,19 @@ void BasicDrawPane::OnPaint(wxPaintEvent & evt)
 //	cairo_rectangle(cr, LMARGIN+50, TMARGIN+50, WIDTH/2, HEIGHT/2);
 //	cairo_fill(cr);
 
-	float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
+	float yd = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
+	float xd = (WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN));			// one X pixel = this number of data units
+
+	// calculate "ideal" block size
+	float BSZ = (yd>xd) ? yd : xd;
+	if (BSZ < 1.0) BSZ = 1.0;
+	BSZ *= 2.0;
+	float BSZH = BSZ / 2.0;
+
 	for (size_t i=0; i<DATALEN; i++) {
 		float x = LMARGIN + (OUTER_BORDER_WIDTH/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
-		float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - 1.0;
-		cairo_rectangle(cr, x-2.5, y-2.5, 5.0, 5.0);	// x, y, wid, hgt
+		float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0;
+		cairo_rectangle(cr, x-BSZH, y-BSZH, BSZ, BSZ);	// x, y, wid, hgt
 		cairo_fill(cr);
 	}
 #endif
