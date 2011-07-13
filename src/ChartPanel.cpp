@@ -27,6 +27,8 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	YAxisType = AXIS_LIN;
 	XAxisType = AXIS_LIN;
 
+	PlotColour = {0.00, 0.75, 0.00, 1.00};	// Green, no xparency (ideal for line plots)
+//	PlotColour = {0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0)};	// Kryoflux blue (for scatter plots) -- TODO: change this!
 
 	// Set up event handlers
 	Connect(this->GetId(),
@@ -217,16 +219,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cairo_stroke(cr);
 
 	// Prepare to draw the chart
-	cairo_set_source_rgba(cr, 0.00, 0.75, 0.00, 1.0);	// PLOT_COLOUR
-
-	// these are for scatter plots -- TODO: remove
-//	cairo_set_source_rgba(cr, 0.55, 0, 0, 0.20);	// Red
-//	cairo_set_source_rgba(cr, 0, 0.55, 0, 0.20);	// Green
-//	cairo_set_source_rgba(cr, 0, 0, 0.55, 0.20);	// Blue
-
-//	cairo_set_source_rgba(cr, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));	// Kryoflux blue
-//	cairo_set_source_rgba(cr, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);	// Kryoflux blue
-
+	cairo_set_source_rgba(cr, PlotColour.r, PlotColour.g, PlotColour.b, PlotColour.a);
 
 	switch (PlotType) {
 		case PLOT_LINE:
