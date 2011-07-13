@@ -29,7 +29,7 @@ class ChartPanel : public wxPanel
 
 		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
 		int OuterBorderWidth;
-		int AxisLineWidth;
+		int AxisLineWidth, PlotLineWidth;					// PlotLineWidth only used when drawing line plots
 		AXIS_TYPE XAxisType, YAxisType;
 		PLOT_TYPE PlotType;
 		COLOUR ChartBackgroundColour, ChartBorderColour;	// alpha channel ignored!
