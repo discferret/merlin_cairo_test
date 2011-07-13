@@ -92,8 +92,8 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	// BMARGIN should have the maximal height of the X-axis value text added to it.
 
 	// calculate width and height TODO should be long?
-	float WIDTH = width - LMARGIN - RMARGIN;
-	float HEIGHT = height - TMARGIN - BMARGIN;
+	float WIDTH = width - LMARGIN - RMARGIN - OuterBorderWidth;
+	float HEIGHT = height - TMARGIN - BMARGIN - OuterBorderWidth;
 
 	// draw outer box and background
 	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
@@ -130,7 +130,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	// draw Y axis
 	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
-	float axis_fudge = (AxisLineWidth == 1) ? 0.5 : 0;
+	float axis_fudge = AxisLineWidth / 2.0;
 
 	if (YAxisType == AXIS_LOG) {
 		const int LOGBASE = 10;
@@ -205,22 +205,21 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	if (PlotType == PLOT_LINE) {
 		// If PlotLineWidth == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
-		float plot_fudge = (PlotLineWidth == 1) ? 0.5 : 0;
+		float plot_fudge = PlotLineWidth / 2.0;
 
 		cairo_set_dash(cr, NULL, 0, 0);
-		cairo_set_line_width(cr, PlotLineWidth);
+		cairo_set_line_width(cr, PlotLineWidth / 2.0);	// antialiasing is a bitch
 
-		// TODO: Take into account fudge factors. Possibly rewrite all of this mess.
-
-		float d = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
-
-		// move to position of 1st data point
-		cairo_move_to(cr, LMARGIN + ((float)OuterBorderWidth/2.0) - plot_fudge, TMARGIN + (HEIGHT-((data[0] - YMIN)*d)) - ((float)OuterBorderWidth/2.0) - plot_fudge);
-
-		// draw other data points
-		for (size_t i=1; i<DATALEN; i++) {
-			float x = (((float)i)*(((float)WIDTH - ((float)OuterBorderWidth / 2.0))/(float)DATALEN)) - plot_fudge;
-			cairo_line_to(cr, LMARGIN + ((float)OuterBorderWidth/2.0) + x, TMARGIN + (HEIGHT-((data[i] - YMIN)*d)) - (OuterBorderWidth / 2.0) - plot_fudge);
+		float xd = (float)(WIDTH  - OuterBorderWidth) / ((float)XMAX - (float)XMIN);
+		float yd = (float)(HEIGHT - OuterBorderWidth) / ((float)YMAX - (float)YMIN);
+		for (size_t i=0; i<DATALEN; i++) {
+			float x = LMARGIN + (((float)/*xdata[i]*/i - (float)XMIN) * xd);
+			float y = TMARGIN + ((HEIGHT - OuterBorderWidth) - ((float)data[i] - (float)YMIN) * yd);
+			if (i == 0) {
+				cairo_move_to(cr, x + plot_fudge, y + plot_fudge);
+			} else {
+				cairo_line_to(cr, x + plot_fudge, y + plot_fudge);
+			}
 		}
 
 		// stroke the chart
