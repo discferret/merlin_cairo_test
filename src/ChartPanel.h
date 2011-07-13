@@ -4,8 +4,30 @@
 #include "wx/wx.h"
 #include <cairo.h>
 
+typedef enum {
+	AXIS_NONE,
+	AXIS_LIN,
+	AXIS_LOG
+} AXIS_TYPE;
+
+typedef enum {
+	PLOT_LINE,
+	PLOT_SCATTER
+} PLOT_TYPE;
+
 class ChartPanel : public wxPanel
 {
+	private:
+		/**
+		 * @brief Render the chart on a Cairo surface
+		 */
+		void Render(cairo_t *cr, long width, long height);
+
+		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
+		int OuterBorderWidth;
+		AXIS_TYPE XAxisType, YAxisType;
+		PLOT_TYPE PlotType;
+
 	public:
 		ChartPanel(wxFrame* parent);
 
@@ -44,12 +66,6 @@ class ChartPanel : public wxPanel
 			}
 			event.Skip();
 		}
-
-	private:
-		/**
-		 * @brief Render the chart on a Cairo surface
-		 */
-		void Render(cairo_t *cr, long width, long height);
 };
 
 #endif // H_CHARTPANEL
