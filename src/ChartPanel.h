@@ -15,6 +15,10 @@ typedef enum {
 	PLOT_SCATTER
 } PLOT_TYPE;
 
+typedef struct {
+	float r,g,b,a;
+} COLOUR;
+
 class ChartPanel : public wxPanel
 {
 	private:
@@ -25,8 +29,10 @@ class ChartPanel : public wxPanel
 
 		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
 		int OuterBorderWidth;
+		int AxisLineWidth;
 		AXIS_TYPE XAxisType, YAxisType;
 		PLOT_TYPE PlotType;
+		COLOUR ChartBackground, ChartBorder;
 
 	public:
 		ChartPanel(wxFrame* parent);

@@ -18,7 +18,11 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	// Set some sane defaults for config parameters
 	LMARGIN = RMARGIN = TMARGIN = BMARGIN = 5;
 	OuterBorderWidth = 2;
+	AxisLineWidth = 1;
 	YAxisType = AXIS_LIN;
+	XAxisType = AXIS_LIN;
+	ChartBorder = {0.0, 0.0, 0.0, 1.0};
+	ChartBackground = {1.0, 1.0, 1.0, 1.0};
 
 	// Set up event handlers
 	Connect(this->GetId(),
@@ -83,9 +87,9 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	// draw outer box and background
 	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
-	cairo_set_source_rgb(cr, 1,1,1);	// CHARTAREA_FILL_COLOUR
+	cairo_set_source_rgb(cr, ChartBackground.r, ChartBackground.g, ChartBackground.b);
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgb(cr, 0,0,0);	// OUTER_BORDER_COLOUR
+	cairo_set_source_rgb(cr, ChartBorder.r, ChartBorder.g, ChartBorder.b);
 	cairo_set_line_width(cr, OuterBorderWidth);
 	cairo_stroke(cr);
 
@@ -104,18 +108,19 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
 
 	cairo_set_source_rgba(cr, 0, 0, 0, 0.25);	// AXIS_COLOUR
-	cairo_set_line_width(cr, 1.0);				// AXIS_WIDTH
+	cairo_set_line_width(cr, AxisLineWidth);
 
-#ifdef AXIS_DEBUG
+#if 0
+	// Dashed lines for axis subdivisions
 	cairo_set_source_rgba(cr, 1.0, 0, 0, 1.0);	// AXIS_COLOUR
 	double dashes[] = {5.0, 5.0};		// ink/skip
 	cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
-	cairo_set_line_width(cr, 1.0);		// AXIS_WIDTH
+	cairo_set_line_width(cr, AxisLineWidth);
 #endif
 
 	// draw Y axis
 	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
-	float fudge = 0.5;
+	float fudge = (AxisLineWidth == 1) ? 0.5 : 0;
 
 	switch (YAxisType) {
 		case AXIS_NONE:
