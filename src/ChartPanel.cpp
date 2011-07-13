@@ -18,11 +18,15 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	// Set some sane defaults for config parameters
 	LMARGIN = RMARGIN = TMARGIN = BMARGIN = 5;
 	OuterBorderWidth = 2;
+	ChartBorderColour = {0.0, 0.0, 0.0, 1.0};
+	ChartBackgroundColour = {1.0, 1.0, 1.0, 1.0};
+
 	AxisLineWidth = 1;
+	AxisLineColour = {0.0, 0.0, 0.0, 0.25};
+
 	YAxisType = AXIS_LIN;
 	XAxisType = AXIS_LIN;
-	ChartBorder = {0.0, 0.0, 0.0, 1.0};
-	ChartBackground = {1.0, 1.0, 1.0, 1.0};
+
 
 	// Set up event handlers
 	Connect(this->GetId(),
@@ -87,9 +91,9 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	// draw outer box and background
 	cairo_rectangle(cr, LMARGIN, TMARGIN, WIDTH, HEIGHT);
-	cairo_set_source_rgb(cr, ChartBackground.r, ChartBackground.g, ChartBackground.b);
+	cairo_set_source_rgb(cr, ChartBackgroundColour.r, ChartBackgroundColour.g, ChartBackgroundColour.b);
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgb(cr, ChartBorder.r, ChartBorder.g, ChartBorder.b);
+	cairo_set_source_rgb(cr, ChartBorderColour.r, ChartBorderColour.g, ChartBorderColour.b);
 	cairo_set_line_width(cr, OuterBorderWidth);
 	cairo_stroke(cr);
 
@@ -107,7 +111,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
 	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
 
-	cairo_set_source_rgba(cr, 0, 0, 0, 0.25);	// AXIS_COLOUR
+	cairo_set_source_rgba(cr, AxisLineColour.r, AxisLineColour.g, AxisLineColour.b, AxisLineColour.a);
 	cairo_set_line_width(cr, AxisLineWidth);
 
 #if 0

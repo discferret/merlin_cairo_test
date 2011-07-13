@@ -32,7 +32,8 @@ class ChartPanel : public wxPanel
 		int AxisLineWidth;
 		AXIS_TYPE XAxisType, YAxisType;
 		PLOT_TYPE PlotType;
-		COLOUR ChartBackground, ChartBorder;
+		COLOUR ChartBackgroundColour, ChartBorderColour;	// alpha channel ignored!
+		COLOUR AxisLineColour;
 
 	public:
 		ChartPanel(wxFrame* parent);
