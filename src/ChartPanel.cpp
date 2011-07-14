@@ -17,6 +17,9 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 {
 	// Set some sane defaults for config parameters
 	LMARGIN = RMARGIN = TMARGIN = BMARGIN = 5;
+
+	LogBase = 10;
+
 	OuterBorderWidth = 2;
 	ChartBorderColour = {0.0, 0.0, 0.0, 1.0};
 	ChartBackgroundColour = {1.0, 1.0, 1.0, 1.0};
@@ -24,8 +27,8 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	AxisLineWidth = 1;
 	AxisLineColour = {0.0, 0.0, 0.0, 0.25};
 
-	YAxisType = AXIS_LIN;
 	XAxisType = AXIS_LIN;
+	YAxisType = AXIS_LOG;
 
 	PlotColour = {0.00, 0.75, 0.00, 1.00};	// Green, no xparency (ideal for line plots)
 //	PlotColour = {0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0)};	// Kryoflux blue (for scatter plots) -- TODO: change this!
@@ -78,10 +81,11 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	float data[DATALEN];
 	float k = rand() % 128;
 	for (int i=0; i<DATALEN; i++) {
-		if (i < (DATALEN / 4))
-			data[i] = k;
-		else
-			data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 50)) + k;
+//		if (i < (DATALEN / 4))
+//			data[i] = k;
+//		else
+//			data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 50)) + k;
+		data[i] = i;
 	}
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
@@ -133,17 +137,15 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	float axis_fudge = AxisLineWidth / 2.0;
 
 	if (YAxisType == AXIS_LOG) {
-		const int LOGBASE = 10;
-
 		// LOGARITHMIC AXIS
-		int n = (int)round((log1p(YMAX + 1)/log1p(LOGBASE)) - (log1p(YMIN)/log1p(LOGBASE)));
+		int n = (int)round((log1p(YMAX + 1)/log1p(LogBase)) - (log1p(YMIN)/log1p(LogBase)));
 		if (n == 0) n = 1.0;	// avoid divide by zero
 		float d = HEIGHT / ((float)n);
 		for (int i=0; i<=n; i++) {
 			float y = TMARGIN + (HEIGHT - ((float)i * d));
 			if (i < n) {	// do not draw detailed gradations past the border
-				for (int j=1; j<=LOGBASE; j++) {
-					int dl = (int)((log1p(LOGBASE-j)/log1p(LOGBASE)) * d);
+				for (int j=1; j<=LogBase; j++) {
+					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
 					cairo_move_to(cr, LMARGIN + axis_fudge, round(y - dl) + axis_fudge);
 					cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y - dl) + axis_fudge);
 				}
@@ -166,17 +168,15 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	// draw X axis
 	if (XAxisType == AXIS_LOG) {
-		const int LOGBASE = 10;
-
 		// LOGARITHMIC X AXIS
-		int n = (int)round((log1p(XMAX + 1)/log1p(LOGBASE)) - (log1p(XMIN)/log1p(LOGBASE)));
+		int n = (int)round((log1p(XMAX + 1)/log1p(LogBase)) - (log1p(XMIN)/log1p(LogBase)));
 		if (n == 0) n = 1.0;	// avoid divide by zero
 		float d = WIDTH / ((float)n);
 		for (int i=0; i<=n; i++) {
 			float x = LMARGIN + ((float)i * d);
 			if (i < n) {	// do not draw detailed gradations past the border
-				for (int j=1; j<=LOGBASE; j++) {
-					int dl = (int)((log1p(LOGBASE-j)/log1p(LOGBASE)) * d);
+				for (int j=1; j<=LogBase; j++) {
+					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
 					cairo_move_to(cr, round(x + dl) + axis_fudge, TMARGIN + axis_fudge);
 					cairo_line_to(cr, round(x + dl) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
 				}

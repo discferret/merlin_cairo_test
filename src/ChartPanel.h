@@ -28,6 +28,7 @@ class ChartPanel : public wxPanel
 		void Render(cairo_t *cr, long width, long height);
 
 		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
+		long LogBase;
 		int OuterBorderWidth;
 		int AxisLineWidth, PlotLineWidth;					// PlotLineWidth only used when drawing line plots
 		AXIS_TYPE XAxisType, YAxisType;
