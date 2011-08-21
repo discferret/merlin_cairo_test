@@ -1,0 +1,10 @@
+To-do list for the Cairo version of Merlin
+==========================================
+
+* Port ChartWindow to Windows (using Cairo)
+* Clean up chart window code
+* Add tooltips to chart window IDing mouse position (current time point and count, or sample number and time delta)
+* Add grid text to chart window
+* Integrate this code with Merlin V1, maybe do a rewrite on V1 in the process?
+    Rationale: the data analysis code in V1 is nasty and crash-prone.
+
