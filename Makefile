@@ -103,81 +103,101 @@
 # version information -- major.minor.extra
 # note that VER_EXTRA can be overridden on the command line, e.g.:
 # make VER_EXTRA=12345 all
-VER_MAJOR	= 0
-VER_MINOR	= 0
-VER_EXTRA	?= 
+VER_MAJOR		:= 0
+VER_MINOR		:= 0
+VER_EXTRA		?=
 
-# build platform: win32 or linux
-PLATFORM	?=	$(shell ./idplatform.sh)
+# build platform: win32, osx or linux (default: autodetect)
+PLATFORM		?=	$(shell ./idplatform.sh)
 #linux
 # build type: release or debug
-BUILD_TYPE	?=	debug
+BUILD_TYPE		?=	debug
 
 # target executable
-TARGET		=	test
+TARGET			:=	test
 
 # source files that produce object files
-SRC			=	test.cpp ChartPanel.cpp
+SRC				:=	test.cpp ChartPanel.cpp
 
 # source type - either "c" or "cpp" (C or C++)
-SRC_TYPE	=	cpp
+SRC_TYPE		:=	cpp
+
+# Enable C99 standard support? (set to gnu99 if so)
+C_STANDARD		:=
+
+# Enable C++0x standard support? (set to gnu++0x if so)
+CPP_STANDARD	:=
 
 # additional object files that don't necessarily include source
-EXT_OBJ		=
+EXT_OBJ			:=
 # libraries to link in -- these will be specified as "-l" parameters, the -l
 # is prepended automatically
-LIB			=
+LIB				:=
 # library paths -- where to search for the above libraries
-LIBPATH		=
+LIBPATH			:=
 # include paths -- where to search for #include files (in addition to the
 # standard paths
-INCPATH		=
+INCPATH			:=
 # garbage files that should be deleted on a 'make clean' or 'make tidy'
-GARBAGE		=
+GARBAGE			:=
 
 # extra dependencies - files that we don't necessarily know how to build, but
 # that are required for building the application; e.g. object files or
 # libraries in sub or parent directories
-EXTDEP		=
+EXTDEP			:=
 
 # Extra libraries
 # wxWidgets: set to "yes" to enable, anything else to disable
-ENABLE_WX	=	yes
-ENABLE_GTK	=	no
-ENABLE_CAIRO	=	yes
+ENABLE_WX		:=	yes
+ENABLE_GTK		:=	no
+ENABLE_CAIRO	:=	yes
 # wxWidgets: list of wxWidgets libraries to enable
-WX_LIBS		=	std
-
-####
-# Win32 target-specific settings
-####
-ifeq ($(strip $(PLATFORM)),win32)
-	# windows executables have a .exe suffix
-	TARGET := $(addsuffix .exe,$(TARGET))
-	# console mode application
-	EXT_CFLAGS = -mconsole
-endif
-
-
-####
-# OSX target-specific settings
-####
+WX_LIBS			:=	std
 
 
 ####
 # Tool setup
 ####
-MAKE	=	make
-CC		=	gcc
-CXX		=	g++
-CFLAGS	=	-Wall -pedantic -std=gnu99 $(EXT_CFLAGS)
-CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(EXT_CXXFLAGS)
-#osx overrides
-CFLAGS	=	-Wall -pedantic $(EXT_CFLAGS)
-CXXFLAGS=	-Wall -pedantic -Wno-long-long $(EXT_CXXFLAGS)
-LDFLAGS	=	$(EXT_LDFLAGS)
-RM		=	rm
-STRIP	=	strip
+# FIXME: do we have to define $(MAKE)?
+MAKE		=	make
+CC			=	gcc
+CXX			=	g++
+CFLAGS		=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CFLAGS)
+CXXFLAGS	=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CXXFLAGS)
+LDFLAGS		=	$(EXT_LDFLAGS)
+RM			=	rm
+STRIP		=	strip
+
+####
+# Experimental C/C++ standards support
+####
+ifneq ($(strip $(C_STANDARD)),)
+    CFLAGS		+=	-std=$(strip $(C_STANDARD))
+endif
+ifneq ($(strip $(CXX_STANDARD)),)
+    CXXFLAGS	+=	-std=$(strip $(CXX_STANDARD))
+endif
+
+
+####
+# Win32 target-specific settings
+####
+ifeq ($(strip $(PLATFORM)),win32)
+    # windows executables have a .exe suffix
+    TARGET := $(addsuffix .exe,$(TARGET))
+    # console mode application
+    EXT_CFLAGS = -mconsole
+endif
+
+
+####
+# Linux target-specific settings
+####
+ifeq ($(strip $(PLATFORM)),linux)
+    # GTK is required on Linux
+    ENABLE_GTK := yes
+endif
+
 
 ###############################################################################
 # You should not need to touch anything below here, unless you're adding a new
@@ -190,7 +210,7 @@ STRIP	=	strip
 ifneq ($(PLATFORM),linux)
 ifneq ($(PLATFORM),win32)
 ifneq ($(PLATFORM),osx)
-    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, win32, osx)
+    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, osx, win32)
 endif
 endif
 endif
