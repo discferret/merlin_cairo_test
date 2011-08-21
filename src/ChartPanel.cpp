@@ -1,16 +1,33 @@
-#include <gdk/gdk.h>
-#include <gtk/gtk.h>
-#include <cairo.h>
-
 #include <cmath>
 #include <iostream>
 
 #include "wx/wx.h"
 
+#if defined(__WXGTK__)
+ #include <gdk/gdk.h>
+ #include <gtk/gtk.h>
+ #include <cairo.h>
+#elif defined(__WXOSX_COCOA__)
+ #include "wx/dcgraph.h"
+ #include "wx/osx/private.h"
+ #include <cairo.h>
+ #include <cairo-quartz.h>
+#else
+ /* didn't recognise platform ID. TODO: add support for __WXMSW__ */
+ #error "Unsupported platform. ChartPanel only works on WXGTK and WXOSX_COCOA."
+#endif
+
 #include "ChartPanel.h"
 
 using namespace std;
 
+void InitColour(COLOUR *co, float r, float g, float b, float a)
+{
+	co->r = r;
+	co->g = g;
+	co->b = b;
+	co->a = a;
+}
 
 ChartPanel::ChartPanel(wxFrame* parent) :
 	wxPanel(parent)
@@ -21,16 +38,16 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	LogBase = 10;
 
 	OuterBorderWidth = 2;
-	ChartBorderColour = {0.0, 0.0, 0.0, 1.0};
-	ChartBackgroundColour = {1.0, 1.0, 1.0, 1.0};
+	InitColour(&ChartBorderColour, 0.0, 0.0, 0.0, 1.0);
+	InitColour(&ChartBackgroundColour, 1.0, 1.0, 1.0, 1.0);
 
 	AxisLineWidth = 1;
-	AxisLineColour = {0.0, 0.0, 0.0, 0.25};
+	InitColour(&AxisLineColour, 0.0, 0.0, 0.0, 0.25);
 
 	XAxisType = AXIS_LIN;
 	YAxisType = AXIS_LOG;
 
-	PlotColour = {0.00, 0.75, 0.00, 1.00};	// Green, no xparency (ideal for line plots)
+	InitColour(&PlotColour, 0.00, 0.75, 0.00, 1.00);	// Green, no xparency (ideal for line plots)
 //	PlotColour = {0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0)};	// Kryoflux blue (for scatter plots) -- TODO: change this!
 	PlotLineWidth = 1;
 
@@ -61,14 +78,34 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 		return;
 	}
 
+#ifndef NDEBUG
 	cout << __func__ << " - ClientRect: width=" << rect.width << ", height=" << rect.height << endl;
+#endif
 
+#if defined(__WXGTK__)
 	// If we're running on wxGTK (GTK widget kit) then we can grab the GDKWindow
 	// and feed it straight to Cairo.
 	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
+#elif defined(__WXOSX_COCOA__)
+	CGContextRef context = (CGContextRef) static_cast<wxGCDCImpl *>(dc.GetImpl())->GetGraphicsContext()->GetNativeContext();
+
+	if(context == 0)
+	{
+		return;
+	}
+
+	cairo_surface_t* cairo_surface = cairo_quartz_surface_create_for_cg_context(context, rect.width, rect.height);
+	cairo_t* cr = cairo_create(cairo_surface);
+#endif
 
 	// Render the chart
 	Render(cr, rect.width, rect.height);
+
+#if defined(__WXOSX_COCOA__)
+	cairo_surface_flush(cairo_surface);
+	CGContextFlush( context );
+	cairo_surface_destroy(cairo_surface);
+#endif
 
 	// we're done with the cairo reference. destroy it.
 	cairo_destroy(cr);

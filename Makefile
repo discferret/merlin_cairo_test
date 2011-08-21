@@ -68,6 +68,7 @@
 # supported platforms:
 #   linux       GNU/Linux with GNU Compiler Collection
 #   win32       Windows 32-bit with MinGW
+#   osx         Mac OS X
 #
 # The EXTSRC variable is used to specify other files to build. It is typically
 # used to specify platform or build-type specific source files, e.g.
@@ -107,7 +108,8 @@ VER_MINOR	= 0
 VER_EXTRA	?= 
 
 # build platform: win32 or linux
-PLATFORM	?=	linux
+PLATFORM	?=	$(shell ./idplatform.sh)
+#linux
 # build type: release or debug
 BUILD_TYPE	?=	debug
 
@@ -141,7 +143,8 @@ EXTDEP		=
 # Extra libraries
 # wxWidgets: set to "yes" to enable, anything else to disable
 ENABLE_WX	=	yes
-ENABLE_GTK	=	yes
+ENABLE_GTK	=	no
+ENABLE_CAIRO	=	yes
 # wxWidgets: list of wxWidgets libraries to enable
 WX_LIBS		=	std
 
@@ -157,6 +160,11 @@ endif
 
 
 ####
+# OSX target-specific settings
+####
+
+
+####
 # Tool setup
 ####
 MAKE	=	make
@@ -164,6 +172,9 @@ CC		=	gcc
 CXX		=	g++
 CFLAGS	=	-Wall -pedantic -std=gnu99 $(EXT_CFLAGS)
 CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(EXT_CXXFLAGS)
+#osx overrides
+CFLAGS	=	-Wall -pedantic $(EXT_CFLAGS)
+CXXFLAGS=	-Wall -pedantic -Wno-long-long $(EXT_CXXFLAGS)
 LDFLAGS	=	$(EXT_LDFLAGS)
 RM		=	rm
 STRIP	=	strip
@@ -178,7 +189,9 @@ STRIP	=	strip
 ####
 ifneq ($(PLATFORM),linux)
 ifneq ($(PLATFORM),win32)
-    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, win32)
+ifneq ($(PLATFORM),osx)
+    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, win32, osx)
+endif
 endif
 endif
 
@@ -186,7 +199,7 @@ endif
 # Version info generation
 ####
 # get the current build number
-VER_BUILDNUM	= $(shell cat .buildnum)
+VER_BUILDNUM	= $(shell cat .buildnum||echo 0)
 
 #### --- begin Subversion revision grabber ---
 # there are two ways to get the SVN revision - use svnversion, or use svn info
@@ -256,21 +269,21 @@ endif
 # wxWidgets support
 ####
 ifeq ($(ENABLE_WX),yes)
-	ifeq ($(BUILD_TYPE),debug)
-		LIBLNK		+=	`wx-config --debug --libs $(WX_LIBS)`
-		CFLAGS		+=	`wx-config --debug --cflags $(WX_LIBS)`
-		CXXFLAGS	+=	`wx-config --debug --cxxflags $(WX_LIBS)`
-		CPPFLAGS	+=	`wx-config --debug --cppflags $(WX_LIBS)`
-	else
-		ifeq ($(BUILD_TYPE),release)
+#	ifeq ($(BUILD_TYPE),debug)
+#		LIBLNK		+=	`wx-config --debug --libs $(WX_LIBS)`
+#		CFLAGS		+=	`wx-config --debug --cflags $(WX_LIBS)`
+#		CXXFLAGS	+=	`wx-config --debug --cxxflags $(WX_LIBS)`
+#		CPPFLAGS	+=	`wx-config --debug --cppflags $(WX_LIBS)`
+#	else
+#		ifeq ($(BUILD_TYPE),release)
 			LIBLNK		+=	`wx-config --libs $(WX_LIBS)`
 			CFLAGS		+=	`wx-config --cflags $(WX_LIBS)`
 			CPPFLAGS	+=	`wx-config --cppflags $(WX_LIBS)`
 			CXXFLAGS	+=	`wx-config --cxxflags $(WX_LIBS)`
-		else
-			$(error Unsupported build type: '$(BUILD_TYPE)')
-		endif
-	endif
+#		else
+#			$(error Unsupported build type: '$(BUILD_TYPE)')
+#		endif
+#	endif
 endif
 
 ####
@@ -280,6 +293,21 @@ ifeq ($(ENABLE_GTK),yes)
 	LIBLNK		+=	`pkg-config gtk+-2.0 --libs`
 	CFLAGS		+=	`pkg-config gtk+-2.0 --cflags`
 	CXXFLAGS	+=	`pkg-config gtk+-2.0 --cflags`
+endif
+
+####
+# Cairo support
+####
+ifeq ($(ENABLE_CAIRO),yes)
+    ifeq ($(PLATFORM),osx)
+		LIBLNK		+=	-L/usr/local/Cellar/cairo/1.10.2/lib -lcairo
+		CFLAGS		+=	-I/usr/local/Cellar/cairo/1.10.2/include/cairo
+		CXXFLAGS	+=	-I/usr/local/Cellar/cairo/1.10.2/include/cairo
+    else
+		LIBLNK		+=	`pkg-config cairo --libs`
+		CFLAGS		+=	`pkg-config cairo --cflags`
+		CXXFLAGS	+=	`pkg-config cairo --cflags`
+    endif
 endif
 
 ####
@@ -335,7 +363,7 @@ versionheader:
 		 -e 's/@@vcsrev@@/$(VER_VCSREV)/g'					\
 		 -e 's/@@vcsstr@@/$(VER_VCSSTR)/g'					\
 		 -e 's/@@fullverstr@@/$(VER_FULLSTR)/g'				\
-		 -e 's/@@cflags@@/$(CFLAGS)/g'						\
+		 -e 's#@@cflags@@#$(CFLAGS)#g'						\
 		 < src/version.h.in > src/version.h
 
 # version.h creation stuff based on code from the Xen makefile
