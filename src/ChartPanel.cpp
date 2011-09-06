@@ -44,8 +44,8 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	AxisLineWidth = 1;
 	InitColour(&AxisLineColour, 0.0, 0.0, 0.0, 0.25);
 
-	XAxisType = AXIS_LOG;
-	YAxisType = AXIS_LOG;
+	XAxisType = AXIS_LIN;
+	YAxisType = AXIS_LIN;
 
 	PlotType = PLOT_LINE;
 	PlotType = PLOT_SCATTER;
@@ -122,14 +122,16 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
 {
-#define DATALEN 9750
+#define DATALEN 1000
 	// generate some random data
 	float data[DATALEN];
 #ifdef DBG_GEN_LINEAR
 	for (int i=0; i<DATALEN; i++) {
 		data[i] = i;
 	}
-#else
+#endif
+
+#ifdef DBG_GEN_RANDOM
 	float k = rand() % 128;
 	cout << "K-value = " << k << endl;
 	for (int i=0; i<DATALEN; i++) {
@@ -139,6 +141,18 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			data[i] = (!(i % (DATALEN/4)) ? (i / (DATALEN/4.0)) * 200.0 : (rand() % 50)) + k;
 	}
 #endif
+
+	for (int i=0; i<DATALEN; i++) {
+#define XF (((float)i) / ((float)DATALEN))
+#define XK (-20.0 + (XF * 40.0))
+		if (XK != 0.0) {
+			data[i] = sin(XK * 3.14159) / (XK * 3.14159);
+		} else {
+			data[i] = 1.0;
+		}
+#undef XF
+#undef XK
+	}
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
 	// http://www.computer-consulting.com/logplotter.htm
@@ -287,17 +301,41 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		float yd = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
 		float xd = (WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN));			// one X pixel = this number of data units
 
-		// calculate "ideal" block size
-		float BSZ = (yd>xd) ? yd : xd;
-		if (BSZ < 1.0) BSZ = 1.0;
-		BSZ *= 2.0;
+		// set block size
+		float BSZ = 10.0;
 		float BSZH = BSZ / 2.0;
 
 		// TODO: clip blocks along the margins (DO NOT plot outside the boundary line)
 		for (size_t i=0; i<DATALEN; i++) {
 			float x = LMARGIN + ((float)OuterBorderWidth/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
 			float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0;
-			cairo_rectangle(cr, x-BSZH, y-BSZH, BSZ, BSZ);	// x, y, wid, hgt
+
+			// Calculate X and Y start point and size
+			float xsta = x - BSZH;
+			float xsz  = BSZ;
+			float ysta = y - BSZH;
+			float ysz  = BSZ;
+
+			// Clip the data against the outer border -- TODO take OuterBorderWidth into account
+			if (xsta < LMARGIN) {
+				xsz -= (LMARGIN - xsta);
+				xsta = LMARGIN;
+			}
+
+			if ((xsta+xsz) > (WIDTH + LMARGIN)) {
+				xsz = ((WIDTH + LMARGIN) - xsta);
+			}
+
+			if (ysta < TMARGIN) {
+				ysz -= (TMARGIN - xsta);
+				ysta = TMARGIN;
+			}
+
+			if ((ysta+ysz) > (HEIGHT + TMARGIN)) {
+				ysz = ((HEIGHT + TMARGIN) - ysta);
+			}
+
+			cairo_rectangle(cr, xsta, ysta, xsz, ysz);	// x, y, wid, hgt
 			cairo_fill(cr);
 		}
 	}
