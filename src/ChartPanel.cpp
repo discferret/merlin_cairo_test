@@ -44,11 +44,20 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	AxisLineWidth = 1;
 	InitColour(&AxisLineColour, 0.0, 0.0, 0.0, 0.25);
 
-	XAxisType = AXIS_LIN;
+	XAxisType = AXIS_LOG;
 	YAxisType = AXIS_LOG;
 
-	InitColour(&PlotColour, 0.00, 0.75, 0.00, 1.00);	// Green, no xparency (ideal for line plots)
-//	PlotColour = {0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0)};	// Kryoflux blue (for scatter plots) -- TODO: change this!
+	PlotType = PLOT_LINE;
+	PlotType = PLOT_SCATTER;
+
+	if (PlotType == PLOT_LINE) {
+		// Green, no transparency (ideal for line plots)
+		InitColour(&PlotColour, 0.00, 0.75, 0.00, 1.00);
+	} else {
+		// Kryoflux blue (for scatter plots) -- TODO -- FIXME: change this!
+		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));
+		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);
+	}
 	PlotLineWidth = 1;
 
 	// Set up event handlers
@@ -113,17 +122,23 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
 {
-#define DATALEN 750
+#define DATALEN 9750
 	// generate some random data
 	float data[DATALEN];
-	float k = rand() % 128;
+#ifdef DBG_GEN_LINEAR
 	for (int i=0; i<DATALEN; i++) {
-//		if (i < (DATALEN / 4))
-//			data[i] = k;
-//		else
-//			data[i] = (!(i % 250) ? (DATALEN-i)*4.0 : (rand() % 50)) + k;
 		data[i] = i;
 	}
+#else
+	float k = rand() % 128;
+	cout << "K-value = " << k << endl;
+	for (int i=0; i<DATALEN; i++) {
+		if (i < (DATALEN / 4))
+			data[i] = k + (rand() % 100);
+		else
+			data[i] = (!(i % (DATALEN/4)) ? (i / (DATALEN/4.0)) * 200.0 : (rand() % 50)) + k;
+	}
+#endif
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
 	// http://www.computer-consulting.com/logplotter.htm
