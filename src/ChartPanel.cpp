@@ -215,6 +215,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			if (i < n) {	// do not draw detailed gradations past the border
 				for (int j=1; j<=LogBase; j++) {
 					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
+					if (dl == 0) continue;
 					cairo_move_to(cr, LMARGIN + axis_fudge, round(y - dl) + axis_fudge);
 					cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y - dl) + axis_fudge);
 				}
@@ -226,7 +227,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		if ((int)(YMAX - YMIN + 1) % HEIGHT) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = HEIGHT / ((float)n);		// pixels between grid lines
-		for (int i=0; i<=n; i++) {
+		for (int i=1; i<=n; i++) {
 			float y = TMARGIN + (HEIGHT - ((float)i * d));	// Y position of this grid line
 			if (i < n) {	// do not draw detailed gradations past the border
 				cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
@@ -246,6 +247,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			if (i < n) {	// do not draw detailed gradations past the border
 				for (int j=1; j<=LogBase; j++) {
 					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
+					if (dl == 0) continue;
 					cairo_move_to(cr, round(x + dl) + axis_fudge, TMARGIN + axis_fudge);
 					cairo_line_to(cr, round(x + dl) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
 				}
@@ -257,7 +259,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		if ((int)(XMAX - XMIN + 1) % 100) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = WIDTH / ((float)n);		// pixels between grid lines
-		for (int i=0; i<=n; i++) {
+		for (int i=1; i<=n; i++) {
 			float x = LMARGIN + ((float)i * d);	// X position of this grid line
 			if (i < n) {	// do not draw detailed gradations past the border
 				cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
@@ -322,27 +324,45 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			float ysta = y - BSZH;
 			float ysz  = BSZ;
 
-			// Clip the data against the outer border
-			if (xsta < LMARGIN) {
+			// Clip the data against the outer borders
+			// This code took DAYS to perfect. Really, you don't want to
+			// mess with it. If you mess with it, be prepared to provide a
+			// mathematical or experimental proof as to why your method works
+			// better.
+
+			// Clip: left border
+			if (xsta < (LMARGIN + (OuterBorderWidth/2.0))) {
 				xsz -= (LMARGIN - xsta) + (OuterBorderWidth / 2.0);
-				xsta = LMARGIN + OuterBorderWidth;
+				xsta = LMARGIN + (OuterBorderWidth / 2.0);
 			}
 
-			if ((xsta+xsz) > (WIDTH + LMARGIN)) {
+			// Clip: top border
+			if (ysta < (TMARGIN + (OuterBorderWidth / 2.0))) {
+				ysz -= (TMARGIN - ysta) + (OuterBorderWidth / 2.0);
+				ysta = TMARGIN + (OuterBorderWidth / 2.0);
+			}
+
+			// Clip: right border
+			// Bear in mind we have TWO half-OuterBorderWidths to add here.
+			// There's one on the left side, and one on the right. But when
+			// we correct the Xsize value, we only need to correct for the
+			// one on the left.
+			if ((xsta+xsz) > (WIDTH + LMARGIN - OuterBorderWidth)) {
 				xsz = ((WIDTH + LMARGIN) - xsta) - (OuterBorderWidth / 2.0);
 			}
 
-			if (ysta < TMARGIN) {
-				ysz -= (TMARGIN - ysta) + (OuterBorderWidth / 2.0);
-				ysta = TMARGIN + OuterBorderWidth;
-			}
-
-			if ((ysta+ysz) > (HEIGHT + TMARGIN)) {
+			// Clip: bottom border
+			// Once again, two half-OuterBorderWidths to deal with. One on
+			// the top edge, one on the bottom edge. Except here, we correct
+			// the Ysize value, and we only correct for the left edge when
+			// we do that.
+			if ((ysta+ysz) > (HEIGHT + TMARGIN + OuterBorderWidth)) {
 				ysz = ((HEIGHT + TMARGIN) - ysta) - (OuterBorderWidth / 2.0);
 			}
 
 			// Draw a filled rectangle
-			cairo_rectangle(cr, xsta - 0.5, ysta - 0.5, xsz, ysz);	// x, y, wid, hgt
+			// Look, Ma! No fudge factor!
+			cairo_rectangle(cr, xsta, ysta, xsz, ysz);	// syntax hint: cairo_obj, x, y, width, height
 			cairo_fill(cr);
 		}
 	}
