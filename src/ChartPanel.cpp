@@ -272,69 +272,51 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	// Prepare to draw the chart
 	cairo_set_source_rgba(cr, PlotColour.r, PlotColour.g, PlotColour.b, PlotColour.a);
 
-	if (PlotType == PLOT_LINE) {
-		// If PlotLineWidth == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
-		float plot_fudge = PlotLineWidth / 2.0;
+	// If PlotLineWidth == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
+	// TODO: RTFM the cairo docs, see if we need this for larger sizes
+	float plot_fudge = (PlotLineWidth == 1.0) ? 0.5 : 0.0;
 
+	// set block size for scatter plots
+	float BSZ = 10.0;
+	float BSZH = BSZ / 2.0;
+
+	if (PlotType == PLOT_LINE) {
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_line_width(cr, PlotLineWidth);	// antialiasing is a bitch
+	}
 
-		// calculate number of data units per X/Y pixel
-		// one X pixel = xd data units; one Y pixel = yd data units.
-		float yd = (YAxisType == AXIS_LIN) ?
-			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)(YMAX - YMIN)) :							// Linear Y axis
-			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
-		float xd = (XAxisType == AXIS_LIN) ?
-			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)(XMAX - XMIN)) :							// Linear X axis
-			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
+	// calculate number of data units per X/Y pixel
+	// one X pixel = xd data units; one Y pixel = yd data units.
+	float yd = (YAxisType == AXIS_LIN) ?
+		(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)(YMAX - YMIN)) :							// Linear Y axis
+		(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
+	float xd = (XAxisType == AXIS_LIN) ?
+		(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)(XMAX - XMIN)) :							// Linear X axis
+		(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
 
-		for (size_t i=0; i<DATALEN; i++) {
-			// Calculate X/Y centre point for the scatter point
-			float x = (XAxisType == AXIS_LIN) ?
-				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :								// Linear X axis
-				LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
-			float y = (YAxisType == AXIS_LIN) ?
-				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) :													// Linear Y axis
-				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
+	for (size_t i=0; i<DATALEN; i++) {
+		// Calculate X/Y centre point for the scatter point
+		float x = (XAxisType == AXIS_LIN) ?
+			LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :								// Linear X axis
+			LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
+		float y = (YAxisType == AXIS_LIN) ?
+			TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) :													// Linear Y axis
+			TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
 
+		if (PlotType == PLOT_LINE) {
 			if (i == 0) {
 				cairo_move_to(cr, x - plot_fudge, y - plot_fudge);
 			} else {
 				cairo_line_to(cr, x - plot_fudge, y - plot_fudge);
 			}
-		}
-
-		// stroke the chart
-		cairo_stroke(cr);
-	} else if (PlotType == PLOT_SCATTER) {
-		// ---- scatter plot, linear ----
-
-		// For each block, call RECTANGLE then FILL. Calling fill() once right at
-		// the end fubars the alpha calculations.
-
-		// set block size
-		float BSZ = 10.0;
-		float BSZH = BSZ / 2.0;
-
-		// calculate number of data units per X/Y pixel
-		// one X pixel = xd data units; one Y pixel = yd data units.
-		float yd = (YAxisType == AXIS_LIN) ?
-			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)(YMAX - YMIN)) :							// Linear Y axis
-			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
-		float xd = (XAxisType == AXIS_LIN) ?
-			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)(XMAX - XMIN)) :							// Linear X axis
-			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
-
-		for (size_t i=0; i<DATALEN; i++) {
-			// Calculate X/Y centre point for the scatter point
-			float x = (XAxisType == AXIS_LIN) ?
-				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :								// Linear X axis
-				LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
-			float y = (YAxisType == AXIS_LIN) ?
-				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) :													// Linear Y axis
-				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
+		} else if (PlotType == PLOT_SCATTER) {
+			// For each block, call RECTANGLE then FILL. Calling fill() once right at
+			// the end fubars the alpha calculations.
 
 			// Calculate X and Y start point and size
+
+			// First subtract half the block size to centre the block around
+			// the plot point
 			float xsta = x - BSZH;
 			float xsz  = BSZ;
 			float ysta = y - BSZH;
@@ -359,8 +341,16 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 				ysz = ((HEIGHT + TMARGIN) - ysta) - (OuterBorderWidth / 2.0);
 			}
 
+			// Draw a filled rectangle
 			cairo_rectangle(cr, xsta - 0.5, ysta - 0.5, xsz, ysz);	// x, y, wid, hgt
 			cairo_fill(cr);
 		}
+	}
+
+	// For line charts, we define the line first, then stroke (draw) it on the
+	// canvas at the end. Scatter plots are built up on-the-fly using
+	// rectangle() and fill() operations.
+	if (PlotType == PLOT_LINE) {
+		cairo_stroke(cr);
 	}
 }
