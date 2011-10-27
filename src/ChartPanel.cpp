@@ -57,6 +57,7 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 		// Kryoflux blue (for scatter plots) -- TODO -- FIXME: change this!
 		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));
 		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);
+		InitColour(&PlotColour, 0.0, 0.80, 0.20, 1.0);
 	}
 	PlotLineWidth = 1;
 
@@ -122,7 +123,9 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
 {
-#define DATALEN 1000
+#define DATALEN 5
+#define DBG_GEN_LINEAR
+//	1000
 	// generate some random data
 	float data[DATALEN];
 #ifdef DBG_GEN_LINEAR
@@ -142,6 +145,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	}
 #endif
 
+#ifdef DBG_GEN_SINC
 	for (int i=0; i<DATALEN; i++) {
 #define XF (((float)i) / ((float)DATALEN))
 #define XK (-20.0 + (XF * 40.0))
@@ -153,6 +157,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 #undef XF
 #undef XK
 	}
+#endif
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
 	// http://www.computer-consulting.com/logplotter.htm
@@ -298,49 +303,49 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		//
 		// TODO: fix issue with 'overdrawing' -- where boxes overlap the margin lines
 
-		float yd = (YAxisType == AXIS_LIN) ?									// one Y pixel = this number of data units
-			(HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN)) :							// linear Y axis
-			(HEIGHT-TMARGIN-BMARGIN) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));	// logarithmic Y axis
-		float xd = (XAxisType == AXIS_LIN) ?									// one X pixel = this number of data units
-			(WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN)) :							// linear X axis
-			(WIDTH-LMARGIN-RMARGIN) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// logarithmic X axis
-
 		// set block size
 		float BSZ = 10.0;
 		float BSZH = BSZ / 2.0;
 
 		// TODO: clip blocks along the margins (DO NOT plot outside the boundary line)
+		float yd = (YAxisType == AXIS_LIN) ?									// one Y pixel = this number of data units
+			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)(YMAX - YMIN)) :							// linear Y axis
+			(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// logarithmic Y axis
+		float xd = (XAxisType == AXIS_LIN) ?									// one X pixel = this number of data units
+			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)(XMAX - XMIN)) :							// linear X axis
+			(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// logarithmic X axis
+
 		for (size_t i=0; i<DATALEN; i++) {
 			float x = (XAxisType == AXIS_LIN) ?
-				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :			/* Linear X axis */
+				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :						/* Linear X axis */
 				LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;	/* Logarithmic X axis */
 			float y = (YAxisType == AXIS_LIN) ?
-				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0 :						/* Linear Y axis */
-				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd)) - 1.0 ;	/* Logarithmic Y axis */
+				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - TMARGIN:									/* Linear Y axis */
+				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd)) - TMARGIN;			/* Logarithmic Y axis */
 
 			// Calculate X and Y start point and size
 			float xsta = x - BSZH;
 			float xsz  = BSZ;
-			float ysta = y - BSZH;
+			float ysta = y;
 			float ysz  = BSZ;
 
 			// Clip the data against the outer border -- TODO take OuterBorderWidth into account
 			if (xsta < LMARGIN) {
-				xsz -= (LMARGIN - xsta);
-				xsta = LMARGIN;
+				xsz -= (LMARGIN - xsta) - (OuterBorderWidth / 2.0);
+				xsta = LMARGIN + (OuterBorderWidth / 2.0);
 			}
 
 			if ((xsta+xsz) > (WIDTH + LMARGIN)) {
-				xsz = ((WIDTH + LMARGIN) - xsta);
+				xsz = ((WIDTH + LMARGIN) - xsta) - (OuterBorderWidth / 2.0);
 			}
 
 			if (ysta < TMARGIN) {
-				ysz -= (TMARGIN - xsta);
-				ysta = TMARGIN;
+				ysz -= (TMARGIN - ysta) - (OuterBorderWidth / 2.0);
+				ysta = TMARGIN + (OuterBorderWidth / 2.0);
 			}
 
 			if ((ysta+ysz) > (HEIGHT + TMARGIN)) {
-				ysz = ((HEIGHT + TMARGIN) - ysta);
+				ysz = ((HEIGHT + TMARGIN) - ysta) - (OuterBorderWidth / 2.0);
 			}
 
 			cairo_rectangle(cr, xsta, ysta, xsz, ysz);	// x, y, wid, hgt
