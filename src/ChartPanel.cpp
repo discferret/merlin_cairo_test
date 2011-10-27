@@ -278,13 +278,14 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	// TODO: RTFM the cairo docs, see if we need this for larger sizes
 	float plot_fudge = (PlotLineWidth == 1.0) ? 0.5 : 0.0;
 
-	// set block size for scatter plots
+	// Set block size for scatter plots
 	float BSZ = 10.0;
 	float BSZH = BSZ / 2.0;
 
+	// Set dashtype and line width for line charts
 	if (PlotType == PLOT_LINE) {
 		cairo_set_dash(cr, NULL, 0, 0);
-		cairo_set_line_width(cr, PlotLineWidth);	// antialiasing is a bitch
+		cairo_set_line_width(cr, PlotLineWidth);
 	}
 
 	// calculate number of data units per X/Y pixel
@@ -356,7 +357,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			// the top edge, one on the bottom edge. Except here, we correct
 			// the Ysize value, and we only correct for the left edge when
 			// we do that.
-			if ((ysta+ysz) > (HEIGHT + TMARGIN + OuterBorderWidth)) {
+			if ((ysta+ysz) > (HEIGHT + TMARGIN - (OuterBorderWidth/2.0))) {
 				ysz = ((HEIGHT + TMARGIN) - ysta) - (OuterBorderWidth / 2.0);
 			}
 
