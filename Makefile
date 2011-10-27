@@ -1,6 +1,6 @@
 # Phil's multiplatform makefile template
 # With auto-incrementing build number and automatic version.h generation
-# Version 1.8, 2010-02-15
+# Version 1.10, 2010-02-15
 #
 # The latest version of this Makefile can be found at http://www.philpem.me.uk/
 #
@@ -64,8 +64,8 @@
 #               and the target is fed through strip to remove redundant
 #               data.
 #
-# The PLATFORM variable contains the current target platform. There are two
-# supported platforms:
+# The PLATFORM variable contains the current target platform. There are currently
+# three supported platforms:
 #   linux       GNU/Linux with GNU Compiler Collection
 #   win32       Windows 32-bit with MinGW
 #   osx         Mac OS X
@@ -85,6 +85,16 @@
 #
 #
 # Change history:
+#   1.10- Add Mac OS X build support
+#         Add automatic build platform identification
+#         Bugfix -- if .buildnum doesn't exist, use '0' for the build number
+#         Add ability to override wxWidgets build type from the command line
+#           (OVERRIDE_WX_USE_RELEASE=1 forces use of wxWidgets release
+#           libraries, even in debug mode).
+#         Add GTK+ and Cairo library support
+#   1.9 - Bugfix -- if CFLAGS contained a forward-slash, sed would fall over.
+#         Also added SDL support and fixed the date/time formats. To use SDL,
+#         set ENABLE_SDL to "yes".
 #   1.8 - Now supports the use of the wxWidgets GUI framework. To turn
 #         this on, set ENABLE_WX to "yes".
 #   1.7 - Now creates a basic Hgignore file and directory keepers for the
@@ -94,6 +104,11 @@
 #   1.5 - Added support for Mercurial revision (changeset ID) display
 #         Fixed a few issues with Subversion support (svn: and version 0 would
 #         be displayed for exported code)
+#
+#
+# TODO list:
+#   - Add a 'make help' option which lists valid make targets, platforms etc.
+#   - Allow platform to be overridden (instead of using idplatform.sh)
 #
 
 ####
@@ -109,15 +124,14 @@ VER_EXTRA		?=
 
 # build platform: win32, osx or linux (default: autodetect)
 PLATFORM		?=	$(shell ./idplatform.sh)
-#linux
 # build type: release or debug
 BUILD_TYPE		?=	debug
 
 # target executable
-TARGET			:=	test
+TARGET		:=	test
 
 # source files that produce object files
-SRC				:=	test.cpp ChartPanel.cpp
+SRC			:=	test.cpp ChartPanel.cpp
 
 # source type - either "c" or "cpp" (C or C++)
 SRC_TYPE		:=	cpp
@@ -147,26 +161,33 @@ GARBAGE			:=
 EXTDEP			:=
 
 # Extra libraries
-# wxWidgets: set to "yes" to enable, anything else to disable
-ENABLE_WX		:=	yes
-ENABLE_GTK		:=	no
+# Set any of these variables to "yes" to enable, or anything else to disable
+# wxWidgets
+ENABLE_WX	:=	yes
+# GTK+ widget set
+ENABLE_GTK	:=	no
+# Cairo graphics library
 ENABLE_CAIRO	:=	yes
+# SDL: set to "yes" to enable, anything else to disable
+ENABLE_SDL	:=	no
+
 # wxWidgets: list of wxWidgets libraries to enable
-WX_LIBS			:=	std
+# Only valid if ENABLE_WX = yes
+WX_LIBS		:=	std
 
 
 ####
 # Tool setup
 ####
 # FIXME: do we have to define $(MAKE)?
-MAKE		=	make
-CC			=	gcc
-CXX			=	g++
-CFLAGS		=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CFLAGS)
-CXXFLAGS	=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CXXFLAGS)
-LDFLAGS		=	$(EXT_LDFLAGS)
-RM			=	rm
-STRIP		=	strip
+MAKE		:=	make
+CC			:=	gcc
+CXX			:=	g++
+CFLAGS		:=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CFLAGS)
+CXXFLAGS	:=	-Wall -pedantic -Wno-variadic-macros -Wno-long-long $(EXT_CXXFLAGS)
+LDFLAGS		:=	$(EXT_LDFLAGS)
+RM			:=	rm
+STRIP		:=	strip
 
 ####
 # Experimental C/C++ standards support
@@ -210,7 +231,7 @@ endif
 ifneq ($(PLATFORM),linux)
 ifneq ($(PLATFORM),win32)
 ifneq ($(PLATFORM),osx)
-    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, osx, win32)
+    $(error Platform '$(PLATFORM)' is not supported. Supported platforms are: linux, win32, osx)
 endif
 endif
 endif
@@ -289,21 +310,35 @@ endif
 # wxWidgets support
 ####
 ifeq ($(ENABLE_WX),yes)
-#	ifeq ($(BUILD_TYPE),debug)
-#		LIBLNK		+=	`wx-config --debug --libs $(WX_LIBS)`
-#		CFLAGS		+=	`wx-config --debug --cflags $(WX_LIBS)`
-#		CXXFLAGS	+=	`wx-config --debug --cxxflags $(WX_LIBS)`
-#		CPPFLAGS	+=	`wx-config --debug --cppflags $(WX_LIBS)`
-#	else
-#		ifeq ($(BUILD_TYPE),release)
+	ifneq ($(OVERRIDE_WX_USE_RELEASE),)
+		WX_BUILD_TYPE := release
+	else
+		WX_BUILD_TYPE := $(BUILD_TYPE)
+	endif
+
+	ifeq ($(WX_BUILD_TYPE),debug)
+		LIBLNK		+=	`wx-config --debug --libs $(WX_LIBS)`
+		CFLAGS		+=	`wx-config --debug --cflags $(WX_LIBS)`
+		CXXFLAGS	+=	`wx-config --debug --cxxflags $(WX_LIBS)`
+		CPPFLAGS	+=	`wx-config --debug --cppflags $(WX_LIBS)`
+	else
+		ifeq ($(WX_BUILD_TYPE),release)
 			LIBLNK		+=	`wx-config --libs $(WX_LIBS)`
 			CFLAGS		+=	`wx-config --cflags $(WX_LIBS)`
 			CPPFLAGS	+=	`wx-config --cppflags $(WX_LIBS)`
 			CXXFLAGS	+=	`wx-config --cxxflags $(WX_LIBS)`
-#		else
-#			$(error Unsupported build type: '$(BUILD_TYPE)')
-#		endif
-#	endif
+		else
+			$(error Unsupported build type: '$(BUILD_TYPE)')
+		endif
+	endif
+endif
+
+####
+# SDL support
+####
+ifeq ($(ENABLE_SDL),yes)
+	LIBLNK		+=	$(shell sdl-config --libs)
+	CFLAGS		+=	$(shell sdl-config --cflags)
 endif
 
 ####
@@ -369,8 +404,9 @@ update-revision:
 	@echo $(NEWBUILD) > .buildnum
 
 versionheader:
-	@sed -e 's/@@date@@/$(shell LC_ALL=C date)/g'			\
-		 -e 's/@@time@@/$(shell LC_ALL=C date +%T)/g'		\
+	@sed -e 's/@@datetime@@/$(shell LC_ALL=C date +"%a %d-%b-%Y %T %Z")/g'		\
+		 -e 's/@@date@@/$(shell LC_ALL=C date +"%a %d-%b-%Y")/g'			\
+		 -e 's/@@time@@/$(shell LC_ALL=C date +"%T %Z")/g'		\
 		 -e 's/@@whoami@@/$(shell whoami)/g'				\
 		 -e 's/@@hostname@@/$(shell hostname)/g'			\
 		 -e 's|@@compiler@@|$(shell $(CC) $(CFLAGS) -v 2>&1 | tail -n 1 | sed -e "s;|;/;")|g'	\
@@ -404,22 +440,23 @@ init:
 	@echo 'dep/*.d' >> .hgignore
 	@echo '*~' >> .hgignore
 	@echo '.*.sw?' >> .hgignore
-	@echo '#define VER_COMPILE_DATE	"@@date@@"'				> src/version.h.in
-	@echo '#define VER_COMPILE_TIME	"@@time@@"'				>> src/version.h.in
-	@echo '#define VER_COMPILE_BY		"@@whoami@@"'		>> src/version.h.in
-	@echo '#define VER_COMPILE_HOST	"@@hostname@@"'			>> src/version.h.in
-	@echo '#define VER_COMPILER		"@@compiler@@"'			>> src/version.h.in
-	@echo '#define VER_BUILD_TYPE		"@@buildtype@@"'	>> src/version.h.in
-	@echo '#define VER_CFLAGS			"@@cflags@@"'		>> src/version.h.in
-	@echo ''												>> src/version.h.in
-	@echo '#define VER_MAJOR			@@majorver@@'		>> src/version.h.in
-	@echo '#define VER_MINOR			@@minorver@@'		>> src/version.h.in
-	@echo '#define VER_BUILDNUM		@@buildnum@@'			>> src/version.h.in
-	@echo '#define VER_EXTRA			"@@extraver@@"'		>> src/version.h.in
-	@echo '#define VER_VCSREV			"@@vcsstr@@"'		>> src/version.h.in
-	@echo ''												>> src/version.h.in
-	@echo '#define VER_FULLSTR			"@@fullverstr@@"'	>> src/version.h.in
-	@echo ''												>> src/version.h.in
+	@echo '#define VER_COMPILE_DATETIME	"@@datetime@@"'			> src/version.h.in
+	@echo '#define VER_COMPILE_DATE		"@@date@@"'				>> src/version.h.in
+	@echo '#define VER_COMPILE_TIME		"@@time@@"'				>> src/version.h.in
+	@echo '#define VER_COMPILE_BY			"@@whoami@@"'		>> src/version.h.in
+	@echo '#define VER_COMPILE_HOST		"@@hostname@@"'			>> src/version.h.in
+	@echo '#define VER_COMPILER			"@@compiler@@"'			>> src/version.h.in
+	@echo '#define VER_BUILD_TYPE			"@@buildtype@@"'	>> src/version.h.in
+	@echo '#define VER_CFLAGS				"@@cflags@@"'		>> src/version.h.in
+	@echo ''													>> src/version.h.in
+	@echo '#define VER_MAJOR				@@majorver@@'		>> src/version.h.in
+	@echo '#define VER_MINOR				@@minorver@@'		>> src/version.h.in
+	@echo '#define VER_BUILDNUM			@@buildnum@@'			>> src/version.h.in
+	@echo '#define VER_EXTRA				"@@extraver@@"'		>> src/version.h.in
+	@echo '#define VER_VCSREV				"@@vcsstr@@"'		>> src/version.h.in
+	@echo ''													>> src/version.h.in
+	@echo '#define VER_FULLSTR				"@@fullverstr@@"'	>> src/version.h.in
+	@echo ''													>> src/version.h.in
 	@echo Build system initialised
 
 # remove the dependency files
