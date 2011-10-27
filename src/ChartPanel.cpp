@@ -298,8 +298,12 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		//
 		// TODO: fix issue with 'overdrawing' -- where boxes overlap the margin lines
 
-		float yd = (HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN));		// one Y pixel = this number of data units
-		float xd = (WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN));			// one X pixel = this number of data units
+		float yd = (YAxisType == AXIS_LIN) ?									// one Y pixel = this number of data units
+			(HEIGHT-TMARGIN-BMARGIN) / ((float)(YMAX - YMIN)) :							// linear Y axis
+			(HEIGHT-TMARGIN-BMARGIN) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));	// logarithmic Y axis
+		float xd = (XAxisType == AXIS_LIN) ?									// one X pixel = this number of data units
+			(WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN)) :							// linear X axis
+			(WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN));							// logarithmic X axis
 
 		// set block size
 		float BSZ = 10.0;
@@ -307,8 +311,11 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 		// TODO: clip blocks along the margins (DO NOT plot outside the boundary line)
 		for (size_t i=0; i<DATALEN; i++) {
+			// TODO logarithmic X axis
 			float x = LMARGIN + ((float)OuterBorderWidth/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
-			float y = TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0;
+			float y = (YAxisType == AXIS_LIN) ?
+				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0 :						/* Linear Y axis */
+				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd)) - 1.0 ;	/* Logarithmic Y axis */
 
 			// Calculate X and Y start point and size
 			float xsta = x - BSZH;
