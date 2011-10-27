@@ -274,13 +274,13 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		float plot_fudge = PlotLineWidth / 2.0;
 
 		cairo_set_dash(cr, NULL, 0, 0);
-		cairo_set_line_width(cr, PlotLineWidth / 2.0);	// antialiasing is a bitch
+		cairo_set_line_width(cr, PlotLineWidth);	// antialiasing is a bitch
 
 		float xd = (float)(WIDTH  - OuterBorderWidth) / ((float)XMAX - (float)XMIN);
 		float yd = (float)(HEIGHT - OuterBorderWidth) / ((float)YMAX - (float)YMIN);
 		for (size_t i=0; i<DATALEN; i++) {
-			float x = LMARGIN + (((float)/*xdata[i]*/i - (float)XMIN) * xd);
-			float y = TMARGIN + ((HEIGHT - OuterBorderWidth) - ((float)data[i] - (float)YMIN) * yd);
+			float x = LMARGIN + (((float)/*xdata[i]*/i - (float)XMIN) * xd) + plot_fudge;
+			float y = TMARGIN + ((HEIGHT - OuterBorderWidth) - ((float)data[i] - (float)YMIN) * yd) + plot_fudge;
 			if (i == 0) {
 				cairo_move_to(cr, x + plot_fudge, y + plot_fudge);
 			} else {
@@ -311,7 +311,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 		// TODO: clip blocks along the margins (DO NOT plot outside the boundary line)
 		for (size_t i=0; i<DATALEN; i++) {
-			// TODO logarithmic X axis
 			float x = (XAxisType == AXIS_LIN) ?
 				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :			/* Linear X axis */
 				LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;	/* Logarithmic X axis */

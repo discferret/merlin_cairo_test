@@ -67,7 +67,8 @@ class ChartPanel : public wxPanel
 		 */
 		void OnSize(wxSizeEvent& event)
 		{
-			wxRect rect = GetClientRect();
+			// making refresh conditional on IsExposed breaks refresh when the window is resized
+			//wxRect rect = GetClientRect();
 			//if(IsExposed(rect.x, rect.y, rect.width, rect.height))
 			{
 				Refresh(false);
