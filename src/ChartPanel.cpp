@@ -303,7 +303,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			(HEIGHT-TMARGIN-BMARGIN) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));	// logarithmic Y axis
 		float xd = (XAxisType == AXIS_LIN) ?									// one X pixel = this number of data units
 			(WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN)) :							// linear X axis
-			(WIDTH-LMARGIN-RMARGIN) / ((float)(XMAX - XMIN));							// logarithmic X axis
+			(WIDTH-LMARGIN-RMARGIN) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// logarithmic X axis
 
 		// set block size
 		float BSZ = 10.0;
@@ -312,7 +312,9 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		// TODO: clip blocks along the margins (DO NOT plot outside the boundary line)
 		for (size_t i=0; i<DATALEN; i++) {
 			// TODO logarithmic X axis
-			float x = LMARGIN + ((float)OuterBorderWidth/2.0) + ((float)i)*((float)WIDTH/(float)DATALEN);
+			float x = (XAxisType == AXIS_LIN) ?
+				LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :			/* Linear X axis */
+				LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;	/* Logarithmic X axis */
 			float y = (YAxisType == AXIS_LIN) ?
 				TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) - 1.0 :						/* Linear Y axis */
 				TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd)) - 1.0 ;	/* Logarithmic Y axis */
