@@ -48,7 +48,7 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	YAxisType = AXIS_LIN;
 
 	PlotType = PLOT_LINE;
-	PlotType = PLOT_SCATTER;
+//	PlotType = PLOT_SCATTER;
 
 	if (PlotType == PLOT_LINE) {
 		// Green, no transparency (ideal for line plots)
@@ -122,8 +122,7 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
 {
-#define DATALEN 2000
-#define DBG_GEN_SINC
+#define DATALEN 20000
 	// generate some random data
 	float data[DATALEN];
 #ifdef DBG_GEN_LINEAR
@@ -193,7 +192,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cairo_set_source_rgba(cr, AxisLineColour.r, AxisLineColour.g, AxisLineColour.b, AxisLineColour.a);
 	cairo_set_line_width(cr, AxisLineWidth);
 
-#if 0
+#if 1
 	// Dashed lines for axis subdivisions
 	cairo_set_source_rgba(cr, 1.0, 0, 0, 1.0);	// AXIS_COLOUR
 	double dashes[] = {5.0, 5.0};		// ink/skip
@@ -226,10 +225,10 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		int n = (YMAX - YMIN + 1) / HEIGHT;			// number of grid lines; one every ten N steps
 //		if ((int)(YMAX - YMIN + 1) % HEIGHT) n++;	// add one if we have a partial grid unit
 		int n = 10;
-		float d = HEIGHT / ((float)n);		// pixels between grid lines
-		for (int i=1; i<=n; i++) {
-			float y = TMARGIN + (HEIGHT - ((float)i * d));	// Y position of this grid line
-			if (i < n) {	// do not draw detailed gradations past the border
+		float d = (HEIGHT-1.0) / ((float)n);		// pixels between grid lines
+		for (int i=0; i<=n+5; i++) {
+			float y = TMARGIN + (HEIGHT -1.0 - ((float)i * d));	// Y position of this grid line
+			if (i < n || 1) {	// do not draw detailed gradations past the border
 				cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
 				cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
 			}
@@ -259,7 +258,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		if ((int)(XMAX - XMIN + 1) % 100) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = WIDTH / ((float)n);		// pixels between grid lines
-		for (int i=1; i<=n; i++) {
+		for (int i=0; i<=n+1; i++) {
 			float x = LMARGIN + ((float)i * d);	// X position of this grid line
 			if (i < n) {	// do not draw detailed gradations past the border
 				cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
@@ -290,28 +289,36 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 	// calculate number of data units per X/Y pixel
 	// one X pixel = xd data units; one Y pixel = yd data units.
-	float yd = (YAxisType == AXIS_LIN) ?
-		(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)(YMAX - YMIN)) :							// Linear Y axis
-		(HEIGHT - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
 	float xd = (XAxisType == AXIS_LIN) ?
-		(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)(XMAX - XMIN)) :							// Linear X axis
-		(WIDTH - ((float)OuterBorderWidth / 2.0)) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(XMAX - XMIN)) :							// Linear X axis
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
+	float yd = (YAxisType == AXIS_LIN) ?
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
 
 	for (size_t i=0; i<DATALEN; i++) {
+		// these two are here to make debugging easier. setting these to
+		// various combinations of X/Y MIN/MAX draws lines on different
+		// edges of the chart area, allowing the eqns to be calibrated.
+		size_t im = i;
+		float dm = i==-1?data[0]:data[i];
+
+		//im=XMAX;
+		//dm=YMAX;
+
 		// Calculate X/Y centre point for the scatter point
 		float x = (XAxisType == AXIS_LIN) ?
-			LMARGIN + ((float)OuterBorderWidth/2.0) + ((i - XMIN) * xd) :								// Linear X axis
-			LMARGIN + ((float)OuterBorderWidth/2.0) + (log1p(i - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
+			LMARGIN + OuterBorderWidth + ((im - XMIN) * xd) :								// Linear X axis
+			LMARGIN + OuterBorderWidth + (log1p(im - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
 		float y = (YAxisType == AXIS_LIN) ?
-			TMARGIN + (HEIGHT-((data[i] - YMIN)*yd)) :													// Linear Y axis
-			TMARGIN + (HEIGHT-((log1p(data[i] - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((dm - YMIN)*yd)) :													// Linear Y axis
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(dm - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
 
 		if (PlotType == PLOT_LINE) {
-			if (i == 0) {
-				cairo_move_to(cr, x - plot_fudge, y - plot_fudge);
-			} else {
-				cairo_line_to(cr, x - plot_fudge, y - plot_fudge);
+			if (i == -1) {
+				cairo_move_to(cr, x - (plot_fudge*2.0), y);
 			}
+			cairo_line_to(cr, x - (plot_fudge*2.0), y);
 		} else if (PlotType == PLOT_SCATTER) {
 			// For each block, call RECTANGLE then FILL. Calling fill() once right at
 			// the end fubars the alpha calculations.
