@@ -226,12 +226,10 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		if ((int)(YMAX - YMIN + 1) % HEIGHT) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = (HEIGHT-1.0) / ((float)n);		// pixels between grid lines
-		for (int i=0; i<=n+5; i++) {
+		for (int i=1; i<n; i++) {
 			float y = TMARGIN + (HEIGHT -1.0 - ((float)i * d));	// Y position of this grid line
-			if (i < n || 1) {	// do not draw detailed gradations past the border
-				cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
-				cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
-			}
+			cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
+			cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
 		}
 	}
 
@@ -258,12 +256,10 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 //		if ((int)(XMAX - XMIN + 1) % 100) n++;	// add one if we have a partial grid unit
 		int n = 10;
 		float d = WIDTH / ((float)n);		// pixels between grid lines
-		for (int i=0; i<=n+1; i++) {
+		for (int i=1; i<n; i++) {
 			float x = LMARGIN + ((float)i * d);	// X position of this grid line
-			if (i < n) {	// do not draw detailed gradations past the border
-				cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
-				cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
-			}
+			cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
+			cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
 		}
 	}
 
