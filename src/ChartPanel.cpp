@@ -147,77 +147,87 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		if (y > YMAX) YMAX = y;
 	}
 
+	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
+	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
+
+	// calculate number of data units per X/Y pixel
+	// one X pixel = xd data units; one Y pixel = yd data units.
+	float xd = (XAxisType == AXIS_LIN) ?
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(XMAX - XMIN)) :							// Linear X axis
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
+	float yd = (YAxisType == AXIS_LIN) ?
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
+
+	// Prepare to draw axes
 	cairo_set_source_rgba(cr, AxisLineColour.r, AxisLineColour.g, AxisLineColour.b, AxisLineColour.a);
 	cairo_set_line_width(cr, AxisLineWidth);
 
-#if 1
-	// Dashed lines for axis subdivisions
-	cairo_set_source_rgba(cr, 1.0, 0, 0, 1.0);	// AXIS_COLOUR
-	double dashes[] = {5.0, 5.0};		// ink/skip
-	cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
-	cairo_set_line_width(cr, AxisLineWidth);
-#endif
-
-	// draw Y axis
 	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
 	float axis_fudge = AxisLineWidth / 2.0;
 
-	if (YAxisType == AXIS_LOG) {
-		// LOGARITHMIC AXIS
-		int n = (int)round((log1p(YMAX + 1)/log1p(LogBase)) - (log1p(YMIN)/log1p(LogBase)));
-		if (n == 0) n = 1.0;	// avoid divide by zero
-		float d = HEIGHT / ((float)n);
-		for (int i=0; i<=n; i++) {
-			float y = TMARGIN + (HEIGHT - ((float)i * d));
-			if (i < n) {	// do not draw detailed gradations past the border
-				for (int j=1; j<=LogBase; j++) {
-					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
-					if (dl == 0) continue;
-					cairo_move_to(cr, LMARGIN + axis_fudge, round(y - dl) + axis_fudge);
-					cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y - dl) + axis_fudge);
-				}
-			}
+	// Draw Y axis
+	// FIXME make ystep configurable -- either (YMAX-YMIN)/10.0 for "N divisions" or fixed span
+	float YSTEP = (YMAX-YMIN)/10.0; //1.0;
+	// Start at the nearest whole grid unit to the Y minima
+	float Y = ((int)(YMIN / YSTEP)) * YSTEP;
+
+	while (Y < YMAX) {
+		float y = (YAxisType == AXIS_LIN) ?
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((Y - YMIN)*yd)) :						// Linear Y axis
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(Y - YMIN)/log1p(LogBase))*yd));	// Logarithmic Y axis
+
+		if ((Y > (0.0-YSTEP)) && (Y < (0.0+YSTEP))) {
+			// Solid line for zero line
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_set_line_width(cr, AxisLineWidth * 2.0);
+		} else {
+			// Dashed lines for axis subdivisions
+			double dashes[] = {5.0, 5.0};		// ink/skip
+			cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
+			cairo_set_line_width(cr, AxisLineWidth);
 		}
-	} else if (YAxisType == AXIS_LIN) {
-		// LINEAR AXIS
-//		int n = (YMAX - YMIN + 1) / HEIGHT;			// number of grid lines; one every ten N steps
-//		if ((int)(YMAX - YMIN + 1) % HEIGHT) n++;	// add one if we have a partial grid unit
-		int n = 10;
-		float d = (HEIGHT-1.0) / ((float)n);		// pixels between grid lines
-		for (int i=1; i<n; i++) {
-			float y = TMARGIN + (HEIGHT -1.0 - ((float)i * d));	// Y position of this grid line
-			cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
-			cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
+
+		cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
+		cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
+		cairo_stroke(cr);
+
+		Y += YSTEP;
+		if ((YAxisType == AXIS_LOG) && (Y >= (YSTEP * LogBase))) {
+			YSTEP *= LogBase;
 		}
 	}
 
-	// draw X axis
-	if (XAxisType == AXIS_LOG) {
-		// LOGARITHMIC X AXIS
-		int n = (int)round((log1p(XMAX + 1)/log1p(LogBase)) - (log1p(XMIN)/log1p(LogBase)));
-		if (n == 0) n = 1.0;	// avoid divide by zero
-		float d = WIDTH / ((float)n);
-		for (int i=0; i<=n; i++) {
-			float x = LMARGIN + ((float)i * d);
-			if (i < n) {	// do not draw detailed gradations past the border
-				for (int j=1; j<=LogBase; j++) {
-					int dl = (int)((log1p(LogBase-j)/log1p(LogBase)) * d);
-					if (dl == 0) continue;
-					cairo_move_to(cr, round(x + dl) + axis_fudge, TMARGIN + axis_fudge);
-					cairo_line_to(cr, round(x + dl) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
-				}
-			}
+	// Draw X axis
+	// FIXME make xstep configurable -- either (XMAX-XMIN)/10.0 for "N divisions" or fixed span
+	float XSTEP = (XMAX-XMIN)/10.0;
+
+	// Start at the nearest whole grid unit to the X minima
+	float X = ((int)(XMIN / XSTEP)) * XSTEP;
+
+	while (X < XMAX) {
+		float x = (XAxisType == AXIS_LIN) ?
+			LMARGIN + OuterBorderWidth + ((X - XMIN) * xd) :									// Linear X axis
+			LMARGIN + OuterBorderWidth + (log1p(X - XMIN)/log1p(LogBase) * xd) ;				// Logarithmic X axis
+
+		if ((X > (0.0-XSTEP)) && (X < (0.0+XSTEP))) {
+			// Solid line for zero line
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_set_line_width(cr, AxisLineWidth * 2.0);
+		} else {
+			// Dashed lines for axis subdivisions
+			double dashes[] = {5.0, 5.0};		// ink/skip
+			cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
+			cairo_set_line_width(cr, AxisLineWidth);
 		}
-	} else if (XAxisType == AXIS_LIN) {
-		// LINEAR X AXIS
-//		int n = (XMAX - XMIN + 1) / 100;			// number of grid lines; one every 100 N steps
-//		if ((int)(XMAX - XMIN + 1) % 100) n++;	// add one if we have a partial grid unit
-		int n = 10;
-		float d = WIDTH / ((float)n);		// pixels between grid lines
-		for (int i=1; i<n; i++) {
-			float x = LMARGIN + ((float)i * d);	// X position of this grid line
-			cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
-			cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
+
+		cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
+		cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
+		cairo_stroke(cr);
+
+		X += XSTEP;
+		if ((XAxisType == AXIS_LOG) && (X >= (XSTEP * LogBase))) {
+			XSTEP *= LogBase;
 		}
 	}
 
@@ -240,15 +250,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_line_width(cr, PlotLineWidth);
 	}
-
-	// calculate number of data units per X/Y pixel
-	// one X pixel = xd data units; one Y pixel = yd data units.
-	float xd = (XAxisType == AXIS_LIN) ?
-		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(XMAX - XMIN)) :							// Linear X axis
-		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
-	float yd = (YAxisType == AXIS_LIN) ?
-		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
-		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
 
 	for (size_t i=0; i<this->dataLength; i++) {
 		// these two are here to make debugging easier. setting these to

@@ -25,7 +25,7 @@ bool MyApp::OnInit()
 	drawPane = new ChartPanel( (wxFrame*) frame );
 	sizer->Add(drawPane, 1, wxEXPAND);
 
-#define DATALEN 20000
+#define DATALEN 10000
 	// generate some random data
 	float *x = new float[DATALEN];
 	float *data = new float[DATALEN];
@@ -56,14 +56,14 @@ bool MyApp::OnInit()
 
 #ifdef DBG_GEN_SINC
 	for (int i=0; i<DATALEN; i++) {
-		x[i] = i;
 #define XF (((float)i) / ((float)DATALEN))
-#define XK (-20.0 + (XF * 40.0))
+#define XK (-20.0 + (XF * 45.0))
 		if (XK != 0.0) {
 			data[i] = sin(XK * 3.14159) / (XK * 3.14159);
 		} else {
 			data[i] = 1.0;
 		}
+		x[i] = XK;
 #undef XF
 #undef XK
 	}
