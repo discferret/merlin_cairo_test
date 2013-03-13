@@ -2,16 +2,23 @@ To-do list for the Cairo version of Merlin
 ==========================================
 
 * Port ChartWindow to Windows (using Cairo)
+  --> Mainly API stuff. Windows does things differently to OSX and Linux...
+
 * Clean up chart window code
+
 * Add tooltips to chart window IDing mouse position (current time point and count, or sample number and time delta)
+  --> Or possibly just a live-updating text label at the bottom of the chart?
+
 * Add grid text to chart window
+
 * Integrate this code with Merlin V1, maybe do a rewrite on V1 in the process?
-    Rationale: the data analysis code in V1 is nasty and crash-prone.
-* Allow autoscale to be disabled
+  --> Rationale: the data analysis code in V1 is nasty and crash-prone.
+
 * Properly handle out-of-range data
+
 * Grid --
   * Allow grid scale and division count to be configured
     --> XSTEP/YSTEP values
+    --> XMIN/XMAX/YMIN/YMAX
+      --> Add separate do_autoscale() function
   * Add labels for grid scale
-  * Optimise X minima rounding (ln 202, 268)
-    Should set X/Y to XMIN/YMIN rounded up to nearest XSTEP/YSTEP multiple

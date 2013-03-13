@@ -25,14 +25,14 @@ bool MyApp::OnInit()
 	drawPane = new ChartPanel( (wxFrame*) frame );
 	sizer->Add(drawPane, 1, wxEXPAND);
 
-#define DATALEN 100
+#define DATALEN 10000
 	// generate some random data
 	float *x = new float[DATALEN];
 	float *data = new float[DATALEN];
 
-#define DBG_GEN_LINEAR
+//#define DBG_GEN_LINEAR
 //#define DBG_GEN_RANDOM
-//#define DBG_GEN_SINC
+#define DBG_GEN_SINC
 
 
 #ifdef DBG_GEN_LINEAR
