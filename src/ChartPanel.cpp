@@ -231,9 +231,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		}
 	}
 
-	// stroke the grid
-	cairo_stroke(cr);
-
 	// Prepare to draw the chart
 	cairo_set_source_rgba(cr, PlotColour.r, PlotColour.g, PlotColour.b, PlotColour.a);
 
