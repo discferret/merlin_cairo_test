@@ -197,14 +197,13 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		}
 	}
 #else
-	float YSTEP = 0.1;
+	float YSTEP = 1.0;
 	float Y = 0.0;
 	// FIXME must be a way to calculate this
 	while ((Y-YSTEP) > YMIN) {
 		Y -= YSTEP;
 	}
 
-	// FIXME works for linear but not logarithmic
 	while (Y < YMAX) {
 		float y = (YAxisType == AXIS_LIN) ?
 			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((Y - YMIN)*yd)) :						// Linear Y axis
@@ -226,6 +225,9 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		cairo_stroke(cr);
 
 		Y += YSTEP;
+		if ((YAxisType == AXIS_LOG) && (Y >= (YSTEP * LogBase))) {
+			YSTEP *= LogBase;
+		}
 	}
 #endif
 
@@ -268,7 +270,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		X -= XSTEP;
 	}
 
-	// FIXME works for linear but not logarithmic
 	while (X < XMAX) {
 		float x = (XAxisType == AXIS_LIN) ?
 			LMARGIN + OuterBorderWidth + ((X - XMIN) * xd) :									// Linear X axis
@@ -290,6 +291,9 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		cairo_stroke(cr);
 
 		X += XSTEP;
+		if ((XAxisType == AXIS_LOG) && (X >= (XSTEP * LogBase))) {
+			XSTEP *= LogBase;
+		}
 	}
 
 #endif

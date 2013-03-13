@@ -11,6 +11,7 @@ To-do list for the Cairo version of Merlin
 * Properly handle out-of-range data
 * Grid --
   * Allow grid scale and division count to be configured
-  * Properly align zero-line and gridlines with incoming data
+    --> XSTEP/YSTEP values
   * Add labels for grid scale
-
+  * Optimise X minima rounding (ln 202, 268)
+    Should set X/Y to XMIN/YMIN rounded up to nearest XSTEP/YSTEP multiple
