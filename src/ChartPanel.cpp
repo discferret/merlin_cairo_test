@@ -30,26 +30,20 @@ void InitColour(COLOUR *co, float r, float g, float b, float a)
 }
 
 ChartPanel::ChartPanel(wxFrame* parent) :
-	wxPanel(parent)
+	wxPanel(parent),
+	LMARGIN(5), RMARGIN(5), TMARGIN(5), BMARGIN(5),
+	LogBase(10),
+	OuterBorderWidth(2), AxisLineWidth(1),
+	XAxisType(AXIS_LIN), YAxisType(AXIS_LIN),
+	PlotType(PLOT_LINE),
+	dataSrcX(NULL), dataSrcY(NULL)
 {
-	// Set some sane defaults for config parameters
-	LMARGIN = RMARGIN = TMARGIN = BMARGIN = 5;
-
-	LogBase = 10;
-
-	OuterBorderWidth = 2;
+	// Initialise colour parameters
 	InitColour(&ChartBorderColour, 0.0, 0.0, 0.0, 1.0);
 	InitColour(&ChartBackgroundColour, 1.0, 1.0, 1.0, 1.0);
-
-	AxisLineWidth = 1;
 	InitColour(&AxisLineColour, 0.0, 0.0, 0.0, 0.25);
 
-	XAxisType = AXIS_LIN;
-	YAxisType = AXIS_LIN;
-
-	PlotType = PLOT_LINE;
-//	PlotType = PLOT_SCATTER;
-
+	// FIXME - maybe just set to red...
 	if (PlotType == PLOT_LINE) {
 		// Green, no transparency (ideal for line plots)
 		InitColour(&PlotColour, 0.00, 0.75, 0.00, 1.00);
@@ -87,10 +81,6 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 		return;
 	}
 
-#ifndef NDEBUG
-	cout << __func__ << " - ClientRect: width=" << rect.width << ", height=" << rect.height << endl;
-#endif
-
 #if defined(__WXGTK__)
 	// If we're running on wxGTK (GTK widget kit) then we can grab the GDKWindow
 	// and feed it straight to Cairo.
@@ -122,39 +112,9 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
 {
-#define DATALEN 20000
-	// generate some random data
-	float data[DATALEN];
-#ifdef DBG_GEN_LINEAR
-	for (int i=0; i<DATALEN; i++) {
-		data[i] = i;
+	if (this->dataSrcY == NULL) {
+		return;
 	}
-#endif
-
-#ifdef DBG_GEN_RANDOM
-	float k = rand() % 128;
-	cout << "K-value = " << k << endl;
-	for (int i=0; i<DATALEN; i++) {
-		if (i < (DATALEN / 4))
-			data[i] = k + (rand() % 100);
-		else
-			data[i] = (!(i % (DATALEN/4)) ? (i / (DATALEN/4.0)) * 200.0 : (rand() % 50)) + k;
-	}
-#endif
-
-#ifdef DBG_GEN_SINC
-	for (int i=0; i<DATALEN; i++) {
-#define XF (((float)i) / ((float)DATALEN))
-#define XK (-20.0 + (XF * 40.0))
-		if (XK != 0.0) {
-			data[i] = sin(XK * 3.14159) / (XK * 3.14159);
-		} else {
-			data[i] = 1.0;
-		}
-#undef XF
-#undef XK
-	}
-#endif
 
 	// based on logarithmic linechart w/ GDB+/VB.NET
 	// http://www.computer-consulting.com/logplotter.htm
@@ -178,16 +138,14 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	// find X and Y data minima and maxima
 	float XMIN = INFINITY, YMIN=INFINITY;
 	float XMAX = -INFINITY, YMAX=-INFINITY;
-	for (int i=0; i<DATALEN; i++) {
-		float x = ((float)i);
+	for (size_t i=0; i<this->dataLength; i++) {
+		float x = (this->dataSrcX != NULL) ? ((float)this->dataSrcX[i]) : ((float)i);
+		float y = ((float)this->dataSrcY[i]);
 		if (x < XMIN) XMIN = x;
 		if (x > XMAX) XMAX = x;
-		if (data[i] < YMIN) YMIN = data[i];
-		if (data[i] > YMAX) YMAX = data[i];
+		if (y < YMIN) YMIN = y;
+		if (y > YMAX) YMAX = y;
 	}
-
-	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
-	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
 
 	cairo_set_source_rgba(cr, AxisLineColour.r, AxisLineColour.g, AxisLineColour.b, AxisLineColour.a);
 	cairo_set_line_width(cr, AxisLineWidth);
@@ -292,26 +250,23 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
 		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
 
-	for (size_t i=0; i<DATALEN; i++) {
+	for (size_t i=0; i<this->dataLength; i++) {
 		// these two are here to make debugging easier. setting these to
 		// various combinations of X/Y MIN/MAX draws lines on different
 		// edges of the chart area, allowing the eqns to be calibrated.
-		size_t im = i;
-		float dm = i==-1?data[0]:data[i];
-
-		//im=XMAX;
-		//dm=YMAX;
+		float x = (this->dataSrcX != NULL) ? ((float)this->dataSrcX[i]) : ((float)i);
+		float y = ((float)this->dataSrcY[i]);
 
 		// Calculate X/Y centre point for the scatter point
-		float x = (XAxisType == AXIS_LIN) ?
-			LMARGIN + OuterBorderWidth + ((im - XMIN) * xd) :								// Linear X axis
-			LMARGIN + OuterBorderWidth + (log1p(im - XMIN)/log1p(LogBase) * xd) ;			// Logarithmic X axis
-		float y = (YAxisType == AXIS_LIN) ?
-			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((dm - YMIN)*yd)) :													// Linear Y axis
-			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(dm - YMIN)/log1p(LogBase))*yd));								// Logarithmic Y axis
+		x = (XAxisType == AXIS_LIN) ?
+			LMARGIN + OuterBorderWidth + ((x - XMIN) * xd) :									// Linear X axis
+			LMARGIN + OuterBorderWidth + (log1p(x - XMIN)/log1p(LogBase) * xd) ;				// Logarithmic X axis
+		y = (YAxisType == AXIS_LIN) ?
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((y - YMIN)*yd)) :						// Linear Y axis
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(y - YMIN)/log1p(LogBase))*yd));	// Logarithmic Y axis
 
 		if (PlotType == PLOT_LINE) {
-			if (i == -1) {
+			if (i == 0) {
 				cairo_move_to(cr, x - (plot_fudge*2.0), y);
 			}
 			cairo_line_to(cr, x - (plot_fudge*2.0), y);

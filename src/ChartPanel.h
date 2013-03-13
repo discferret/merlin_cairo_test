@@ -36,8 +36,38 @@ class ChartPanel : public wxPanel
 		COLOUR ChartBackgroundColour, ChartBorderColour;	// alpha channel ignored!
 		COLOUR AxisLineColour, PlotColour;
 
+		const float *dataSrcX, *dataSrcY;
+		size_t dataLength;
+
 	public:
 		ChartPanel(wxFrame* parent);
+
+		void setDataSource(const float *dataSrcX, const float *dataSrcY, const size_t dataLength)
+		{
+			this->dataSrcX = dataSrcX;
+			this->dataSrcY = dataSrcY;
+			this->dataLength = dataLength;
+		}
+
+		void setMargins(const long left, const long right, const long top, const long bottom)
+		{
+			this->LMARGIN = left;
+			this->RMARGIN = right;
+			this->TMARGIN = top;
+			this->BMARGIN = bottom;
+		}
+
+		void setLogBase(const long logBase)
+		{
+			this->LogBase = logBase;
+		}
+
+		void setWidths(const int outerBorderWidth, const int axisLineWidth, const int plotLineWidth)
+		{
+			this->OuterBorderWidth = outerBorderWidth;
+			this->AxisLineWidth = AxisLineWidth;
+			this->PlotLineWidth = PlotLineWidth;
+		}
 
 		// some useful events
 		/*
