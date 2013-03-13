@@ -7,4 +7,10 @@ To-do list for the Cairo version of Merlin
 * Add grid text to chart window
 * Integrate this code with Merlin V1, maybe do a rewrite on V1 in the process?
     Rationale: the data analysis code in V1 is nasty and crash-prone.
+* Allow autoscale to be disabled
+* Properly handle out-of-range data
+* Grid --
+  * Allow grid scale and division count to be configured
+  * Properly align zero-line and gridlines with incoming data
+  * Add labels for grid scale
 

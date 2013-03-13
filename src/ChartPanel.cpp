@@ -147,21 +147,27 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		if (y > YMAX) YMAX = y;
 	}
 
+	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
+	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
+
+	// calculate number of data units per X/Y pixel
+	// one X pixel = xd data units; one Y pixel = yd data units.
+	float xd = (XAxisType == AXIS_LIN) ?
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(XMAX - XMIN)) :							// Linear X axis
+		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
+	float yd = (YAxisType == AXIS_LIN) ?
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
+		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
+
+	// Prepare to draw axis
 	cairo_set_source_rgba(cr, AxisLineColour.r, AxisLineColour.g, AxisLineColour.b, AxisLineColour.a);
 	cairo_set_line_width(cr, AxisLineWidth);
-
-#if 1
-	// Dashed lines for axis subdivisions
-	cairo_set_source_rgba(cr, 1.0, 0, 0, 1.0);	// AXIS_COLOUR
-	double dashes[] = {5.0, 5.0};		// ink/skip
-	cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
-	cairo_set_line_width(cr, AxisLineWidth);
-#endif
 
 	// draw Y axis
 	// If AXIS_WIDTH == 1.0, we need a fudge factor of 0.5 to stop Cairo AAing the 1px line into 2px 50%-alpha
 	float axis_fudge = AxisLineWidth / 2.0;
 
+#if 0
 	if (YAxisType == AXIS_LOG) {
 		// LOGARITHMIC AXIS
 		int n = (int)round((log1p(YMAX + 1)/log1p(LogBase)) - (log1p(YMIN)/log1p(LogBase)));
@@ -190,8 +196,41 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
 		}
 	}
+#else
+	float YSTEP = 0.1;
+	float Y = 0.0;
+	// FIXME must be a way to calculate this
+	while ((Y-YSTEP) > YMIN) {
+		Y -= YSTEP;
+	}
+
+	// FIXME works for linear but not logarithmic
+	while (Y < YMAX) {
+		float y = (YAxisType == AXIS_LIN) ?
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((Y - YMIN)*yd)) :						// Linear Y axis
+			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(Y - YMIN)/log1p(LogBase))*yd));	// Logarithmic Y axis
+
+		if ((Y > (0.0-YSTEP)) && (Y < (0.0+YSTEP))) {
+			// Solid line for zero line
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_set_line_width(cr, AxisLineWidth * 2.0);
+		} else {
+			// Dashed lines for axis subdivisions
+			double dashes[] = {5.0, 5.0};		// ink/skip
+			cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
+			cairo_set_line_width(cr, AxisLineWidth);
+		}
+
+		cairo_move_to(cr, LMARGIN + axis_fudge, round(y) + axis_fudge);
+		cairo_line_to(cr, LMARGIN + WIDTH + axis_fudge, round(y) + axis_fudge);
+		cairo_stroke(cr);
+
+		Y += YSTEP;
+	}
+#endif
 
 	// draw X axis
+#if 0
 	if (XAxisType == AXIS_LOG) {
 		// LOGARITHMIC X AXIS
 		int n = (int)round((log1p(XMAX + 1)/log1p(LogBase)) - (log1p(XMIN)/log1p(LogBase)));
@@ -220,6 +259,41 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
 		}
 	}
+#else
+
+	float XSTEP = 1.0;
+	float X = 0.0;
+	// FIXME must be a way to calculate this
+	while ((X-XSTEP) > XMIN) {
+		X -= XSTEP;
+	}
+
+	// FIXME works for linear but not logarithmic
+	while (X < XMAX) {
+		float x = (XAxisType == AXIS_LIN) ?
+			LMARGIN + OuterBorderWidth + ((X - XMIN) * xd) :									// Linear X axis
+			LMARGIN + OuterBorderWidth + (log1p(X - XMIN)/log1p(LogBase) * xd) ;				// Logarithmic X axis
+
+		if ((X > (0.0-XSTEP)) && (X < (0.0+XSTEP))) {
+			// Solid line for zero line
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_set_line_width(cr, AxisLineWidth * 2.0);
+		} else {
+			// Dashed lines for axis subdivisions
+			double dashes[] = {5.0, 5.0};		// ink/skip
+			cairo_set_dash(cr, dashes, sizeof(dashes)/sizeof(dashes[0]), 0.0);
+			cairo_set_line_width(cr, AxisLineWidth);
+		}
+
+		cairo_move_to(cr, round(x) + axis_fudge, TMARGIN + axis_fudge);
+		cairo_line_to(cr, round(x) + axis_fudge, TMARGIN + HEIGHT + axis_fudge);
+		cairo_stroke(cr);
+
+		X += XSTEP;
+	}
+
+#endif
+
 
 	// stroke the grid
 	cairo_stroke(cr);
@@ -240,15 +314,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_line_width(cr, PlotLineWidth);
 	}
-
-	// calculate number of data units per X/Y pixel
-	// one X pixel = xd data units; one Y pixel = yd data units.
-	float xd = (XAxisType == AXIS_LIN) ?
-		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(XMAX - XMIN)) :							// Linear X axis
-		(WIDTH - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(XMAX - XMIN) / log1p(LogBase));		// Logarithmic X axis
-	float yd = (YAxisType == AXIS_LIN) ?
-		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)(YMAX - YMIN)) :							// Linear Y axis
-		(HEIGHT - ((float)OuterBorderWidth)/* - (plot_fudge*2.0)*/) / ((float)log1p(YMAX - YMIN) / log1p(LogBase));		// Logarithmic Y axis
 
 	for (size_t i=0; i<this->dataLength; i++) {
 		// these two are here to make debugging easier. setting these to
