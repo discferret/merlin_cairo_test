@@ -208,7 +208,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	while (X < XMAX) {
 		float x = (XAxisType == AXIS_LIN) ?
 			LMARGIN + OuterBorderWidth + ((X - XMIN) * xd) :									// Linear X axis
-			LMARGIN + OuterBorderWidth + (log1p(X - XMIN)/log1p(LogBase) * xd) ;				// Logarithmic X axis
+			LMARGIN + OuterBorderWidth + (log1p(X - XMIN)/log1p(LogBase) * xd);					// Logarithmic X axis
 
 		if ((X > (0.0-XSTEP)) && (X < (0.0+XSTEP))) {
 			// Solid line for zero line
@@ -258,7 +258,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 		// Calculate X/Y centre point for the scatter point
 		x = (XAxisType == AXIS_LIN) ?
 			LMARGIN + OuterBorderWidth + ((x - XMIN) * xd) :									// Linear X axis
-			LMARGIN + OuterBorderWidth + (log1p(x - XMIN)/log1p(LogBase) * xd) ;				// Logarithmic X axis
+			LMARGIN + OuterBorderWidth + (log1p(x - XMIN)/log1p(LogBase) * xd);					// Logarithmic X axis
 		y = (YAxisType == AXIS_LIN) ?
 			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((y - YMIN)*yd)) :						// Linear Y axis
 			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(y - YMIN)/log1p(LogBase))*yd));	// Logarithmic Y axis
