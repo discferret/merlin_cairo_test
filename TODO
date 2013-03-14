@@ -9,12 +9,8 @@ To-do list for the Cairo version of Merlin
 * Add tooltips to chart window IDing mouse position (current time point and count, or sample number and time delta)
   --> Or possibly just a live-updating text label at the bottom of the chart?
 
-* Add grid text to chart window
-
 * Integrate this code with Merlin V1, maybe do a rewrite on V1 in the process?
   --> Rationale: the data analysis code in V1 is nasty and crash-prone.
-
-* Properly handle out-of-range data
 
 * Grid --
   * Allow grid scale and division count to be configured
@@ -22,3 +18,4 @@ To-do list for the Cairo version of Merlin
     --> XMIN/XMAX/YMIN/YMAX
       --> Add separate do_autoscale() function
   * Add labels for grid scale
+    --> Format function pointer? Or format string and scale factor?
