@@ -38,7 +38,7 @@ class ChartPanel : public wxPanel
 		// Width of axis lines in pixels
 		int AxisLineWidth;
 
-		// Width of plot lines in pixels (only used for line plots, not scatter plots)
+		// Width of plot lines in pixels. For scatter plots, this is the size of the scatter block.
 		int PlotLineWidth;
 
 		/**

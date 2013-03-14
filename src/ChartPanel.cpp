@@ -53,6 +53,7 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 		// Kryoflux blue (for scatter plots) -- TODO -- FIXME: change this!
 //		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));
 		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);
+		PlotLineWidth = 10;
 	}
 
 	// Set up event handlers
@@ -171,6 +172,15 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cairo_set_line_width(cr, OuterBorderWidth);
 	cairo_stroke(cr);
 
+	// Set clipping region
+	cairo_save(cr);
+	cairo_rectangle(cr,
+			LMARGIN + (OuterBorderWidth/2.0),
+			TMARGIN + (OuterBorderWidth/2.0),
+			WIDTH - OuterBorderWidth,
+			HEIGHT - OuterBorderWidth);
+	cairo_clip(cr);
+
 	// calculate number of data units per X/Y pixel
 	// one X pixel = xd data units; one Y pixel = yd data units.
 	float xd = (XAxisType == AXIS_LIN) ?
@@ -259,10 +269,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	// TODO: RTFM the cairo docs, see if we need this for larger sizes
 	float plot_fudge = (PlotLineWidth == 1.0) ? 0.5 : 0.0;
 
-	// Set block size for scatter plots
-	float BSZ = 10.0;
-	float BSZH = BSZ / 2.0;
-
 	// Set dashtype and line width for line charts
 	if (PlotType == PLOT_LINE) {
 		cairo_set_dash(cr, NULL, 0, 0);
@@ -278,8 +284,8 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 
 		// Calculate X/Y centre point for the scatter point
 		x = (XAxisType == AXIS_LIN) ?
-			LMARGIN + OuterBorderWidth + ((x - XMIN) * xd) :									// Linear X axis
-			LMARGIN + OuterBorderWidth + (log1p(x - XMIN)/log1p(LogBase) * xd);					// Logarithmic X axis
+			LMARGIN + (OuterBorderWidth/2.0) + ((x - XMIN) * xd) :									// Linear X axis
+			LMARGIN + (OuterBorderWidth/2.0) + (log1p(x - XMIN)/log1p(LogBase) * xd);					// Logarithmic X axis
 		y = (YAxisType == AXIS_LIN) ?
 			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((y - YMIN)*yd)) :						// Linear Y axis
 			TMARGIN - (OuterBorderWidth/2.0) + (HEIGHT-((log1p(y - YMIN)/log1p(LogBase))*yd));	// Logarithmic Y axis
@@ -294,53 +300,13 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 			// the end fubars the alpha calculations.
 
 			// Calculate X and Y start point and size
-
-			// First subtract half the block size to centre the block around
-			// the plot point
-			float xsta = x - BSZH;
-			float xsz  = BSZ;
-			float ysta = y - BSZH;
-			float ysz  = BSZ;
-
-			// Clip the data against the outer borders
-			// This code took DAYS to perfect. Really, you don't want to
-			// mess with it. If you mess with it, be prepared to provide a
-			// mathematical or experimental proof as to why your method works
-			// better.
-
-			// Clip: left border
-			if (xsta < (LMARGIN + (OuterBorderWidth/2.0))) {
-				xsz -= (LMARGIN - xsta) + (OuterBorderWidth / 2.0);
-				xsta = LMARGIN + (OuterBorderWidth / 2.0);
-			}
-
-			// Clip: top border
-			if (ysta < (TMARGIN + (OuterBorderWidth / 2.0))) {
-				ysz -= (TMARGIN - ysta) + (OuterBorderWidth / 2.0);
-				ysta = TMARGIN + (OuterBorderWidth / 2.0);
-			}
-
-			// Clip: right border
-			// Bear in mind we have TWO half-OuterBorderWidths to add here.
-			// There's one on the left side, and one on the right. But when
-			// we correct the Xsize value, we only need to correct for the
-			// one on the left.
-			if ((xsta+xsz) > (WIDTH + LMARGIN - OuterBorderWidth)) {
-				xsz = ((WIDTH + LMARGIN) - xsta) - (OuterBorderWidth / 2.0);
-			}
-
-			// Clip: bottom border
-			// Once again, two half-OuterBorderWidths to deal with. One on
-			// the top edge, one on the bottom edge. Except here, we correct
-			// the Ysize value, and we only correct for the left edge when
-			// we do that.
-			if ((ysta+ysz) > (HEIGHT + TMARGIN - (OuterBorderWidth/2.0))) {
-				ysz = ((HEIGHT + TMARGIN) - ysta) - (OuterBorderWidth / 2.0);
-			}
+			// Subtract half the block size to centre the block around the plot point
+			float xsta = x - (PlotLineWidth / 2.0);
+			float ysta = y - (PlotLineWidth / 2.0);
 
 			// Draw a filled rectangle
 			// Look, Ma! No fudge factor!
-			cairo_rectangle(cr, xsta, ysta, xsz, ysz);	// syntax hint: cairo_obj, x, y, width, height
+			cairo_rectangle(cr, xsta, ysta, PlotLineWidth, PlotLineWidth);
 			cairo_fill(cr);
 		}
 	}
@@ -351,4 +317,7 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	if (PlotType == PLOT_LINE) {
 		cairo_stroke(cr);
 	}
+
+	// Reset clipping region
+	cairo_restore(cr);
 }
