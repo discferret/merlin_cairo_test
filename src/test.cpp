@@ -126,8 +126,15 @@ bool MyApp::OnInit()
 	drawPane->setDataSource(x, data, bufpos);
 
 	drawPane->autoScale();
-	drawPane->YMIN=0;
+	drawPane->YMIN=-0.1e-6;
 	drawPane->YMAX=5.0e-6;
+	drawPane->XSTEP = (drawPane->XMAX - drawPane->XMIN)/10.0;		// 10 X-divisions
+	drawPane->YSTEP = 1.0e-6;				// 1us
+
+	// drawPane->PlotType = PLOT_SCATTER;
+	// drawPane->setPlotFormat(3, 0.00, 0.75, 0.00, 0.25);
+	// drawPane->setPlotFormat(10, 0.00/255.0, 86.0/255.0, 245.0/255.0, 0.20);
+	drawPane->setPlotFormat(10, 0.00/255.0, 86.0/255.0, 245.0/255.0, 1.0-(241.0/255.0));
 
 	frame->SetSizer(sizer);
 	frame->SetAutoLayout(true);

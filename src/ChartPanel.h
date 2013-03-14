@@ -41,6 +41,12 @@ class ChartPanel : public wxPanel
 		// Width of plot lines in pixels. For scatter plots, this is the size of the scatter block.
 		int PlotLineWidth;
 
+		// Axis line and plot colour
+		COLOUR AxisLineColour, PlotColour;
+
+		// Chart background and border colour -- alpha channel is ignored!
+		COLOUR ChartBackgroundColour, ChartBorderColour;
+
 		/**
 		 * @brief Render the chart on a Cairo surface
 		 */
@@ -51,37 +57,17 @@ class ChartPanel : public wxPanel
 
 		AXIS_TYPE XAxisType, YAxisType;
 		PLOT_TYPE PlotType;
-		COLOUR ChartBackgroundColour, ChartBorderColour;	// alpha channel ignored!
-		COLOUR AxisLineColour, PlotColour;
 
-		float XMIN, XMAX, YMIN, YMAX;
+		float XMIN, XMAX, YMIN, YMAX;						// X/Y axis scaling (minimum and maximum value)
+		float XSTEP, YSTEP;									// X/Y axis major gridline step
 
-		void setDataSource(const float *dataSrcX, const float *dataSrcY, const size_t dataLength)
-		{
-			this->dataSrcX = dataSrcX;
-			this->dataSrcY = dataSrcY;
-			this->dataLength = dataLength;
-		}
-
-		void setMargins(const long left, const long right, const long top, const long bottom)
-		{
-			this->LMARGIN = left;
-			this->RMARGIN = right;
-			this->TMARGIN = top;
-			this->BMARGIN = bottom;
-		}
-
-		void setLogBase(const long logBase)
-		{
-			this->LogBase = logBase;
-		}
-
-		void setWidths(const int outerBorderWidth, const int axisLineWidth, const int plotLineWidth)
-		{
-			this->OuterBorderWidth = outerBorderWidth;
-			this->AxisLineWidth = AxisLineWidth;
-			this->PlotLineWidth = PlotLineWidth;
-		}
+		void setAxisLineFormat(const float width, const float r, const float g, const float b, const float a);
+		void setBorderFormat(const float width, const float r, const float g, const float b);
+		void setPlotFormat(const float width, const float r, const float g, const float b, const float a);
+		void setBackgroundColour(const float r, const float g, const float b);
+		void setDataSource(const float *dataSrcX, const float *dataSrcY, const size_t dataLength);
+		void setMargins(const long left, const long right, const long top, const long bottom);
+		void setLogBase(const long logBase);
 
 		void autoScale(void);
 

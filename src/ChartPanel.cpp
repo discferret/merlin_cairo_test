@@ -21,40 +21,87 @@
 
 using namespace std;
 
-void InitColour(COLOUR *co, float r, float g, float b, float a)
+/**
+ * Set formatting for the axis lines.
+ *
+ * @param	width		Width in pixels
+ * @param	r			Red component, range 0 to 1
+ * @param	g			Green component, range 0 to 1
+ * @param	b			Blue component, range 0 to 1
+ * @param	a			Transparency, range 0 to 1
+ */
+void ChartPanel::setAxisLineFormat(const float width, const float r, const float g, const float b, const float a)
 {
-	co->r = r;
-	co->g = g;
-	co->b = b;
-	co->a = a;
+	this->AxisLineWidth = width;
+	this->AxisLineColour.r = r;
+	this->AxisLineColour.g = g;
+	this->AxisLineColour.b = b;
+	this->AxisLineColour.a = a;
 }
+
+void ChartPanel::setBorderFormat(const float width, const float r, const float g, const float b)
+{
+	this->OuterBorderWidth = width;
+	this->ChartBorderColour.r = r;
+	this->ChartBorderColour.g = g;
+	this->ChartBorderColour.b = b;
+}
+
+void ChartPanel::setPlotFormat(const float width, const float r, const float g, const float b, const float a)
+{
+	this->PlotLineWidth = width;
+	this->PlotColour.r = r;
+	this->PlotColour.g = g;
+	this->PlotColour.b = b;
+	this->PlotColour.a = a;
+}
+
+void ChartPanel::setBackgroundColour(const float r, const float g, const float b)
+{
+	this->ChartBackgroundColour.r = r;
+	this->ChartBackgroundColour.g = g;
+	this->ChartBackgroundColour.b = b;
+}
+
+void ChartPanel::setDataSource(const float *dataSrcX, const float *dataSrcY, const size_t dataLength)
+{
+	this->dataSrcX = dataSrcX;
+	this->dataSrcY = dataSrcY;
+	this->dataLength = dataLength;
+}
+
+void ChartPanel::setMargins(const long left, const long right, const long top, const long bottom)
+{
+	this->LMARGIN = left;
+	this->RMARGIN = right;
+	this->TMARGIN = top;
+	this->BMARGIN = bottom;
+}
+
+void ChartPanel::setLogBase(const long logBase)
+{
+	this->LogBase = logBase;
+}
+
+
+
+
 
 ChartPanel::ChartPanel(wxFrame* parent) :
 	wxPanel(parent),
 	dataSrcX(NULL), dataSrcY(NULL), dataLength(0),
 	LMARGIN(5), RMARGIN(5), TMARGIN(5), BMARGIN(5),
 	LogBase(10),
-	OuterBorderWidth(2), AxisLineWidth(1), PlotLineWidth(1),
 	XAxisType(AXIS_LIN), YAxisType(AXIS_LIN),
 	PlotType(PLOT_SCATTER),
 	XMIN(0.0), XMAX(1.0),
 	YMIN(0.0), YMAX(1.0)
 {
 	// Initialise colour parameters
-	InitColour(&ChartBorderColour, 0.0, 0.0, 0.0, 1.0);
-	InitColour(&ChartBackgroundColour, 1.0, 1.0, 1.0, 1.0);
-	InitColour(&AxisLineColour, 0.0, 0.0, 0.0, 0.25);
-
-	// FIXME - maybe just set to red...
-	if (PlotType == PLOT_LINE) {
-		// Green, no transparency (ideal for line plots)
-		InitColour(&PlotColour, 0.00, 0.75, 0.00, 1.00);
-	} else {
-		// Kryoflux blue (for scatter plots) -- TODO -- FIXME: change this!
-//		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));
-		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);
-		PlotLineWidth = 10;
-	}
+	this->setBorderFormat(2, 0,0,0);				// 2px Black
+	this->setBackgroundColour(1,1,1);				// White
+	this->setAxisLineFormat(1, 0, 0, 0, 0.25);		// 1px grey (actually black), 25% opacity
+	this->setPlotFormat(1, 0.0, 0.75, 0.00, 1.00);	// 1px green, 100% opacity
 
 	// Set up event handlers
 	Connect(this->GetId(),
@@ -198,10 +245,8 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	float axis_fudge = AxisLineWidth / 2.0;
 
 	// Draw Y axis
-	// FIXME make ystep configurable -- either (YMAX-YMIN)/10.0 for "N divisions" or fixed span
-	float YSTEP = (YMAX-YMIN)/10.0; //1.0;
 	// Start at the nearest whole grid unit to the Y minima
-	float Y = ((int)(YMIN / YSTEP)) * YSTEP;
+	float Y = (ceil(YMIN / YSTEP)) * YSTEP;
 
 	while (Y < YMAX) {
 		float y = (YAxisType == AXIS_LIN) ?
@@ -230,11 +275,8 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	}
 
 	// Draw X axis
-	// FIXME make xstep configurable -- either (XMAX-XMIN)/10.0 for "N divisions" or fixed span
-	float XSTEP = (XMAX-XMIN)/10.0;
-
 	// Start at the nearest whole grid unit to the X minima
-	float X = ((int)(XMIN / XSTEP)) * XSTEP;
+	float X = (ceil(XMIN / XSTEP)) * XSTEP;
 
 	while (X < XMAX) {
 		float x = (XAxisType == AXIS_LIN) ?
