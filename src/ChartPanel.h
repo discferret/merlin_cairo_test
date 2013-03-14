@@ -22,25 +22,39 @@ typedef struct {
 class ChartPanel : public wxPanel
 {
 	private:
+		// Chart data source, X and Y, and data length
+		const float *dataSrcX, *dataSrcY;
+		size_t dataLength;
+
+		// Left, right, top and bottom margins
+		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
+
+		// Logarithm base for logarithmic charts; defaults to 10
+		long LogBase;
+
+		// Width of outer border in pixels
+		int OuterBorderWidth;
+
+		// Width of axis lines in pixels
+		int AxisLineWidth;
+
+		// Width of plot lines in pixels (only used for line plots, not scatter plots)
+		int PlotLineWidth;
+
 		/**
 		 * @brief Render the chart on a Cairo surface
 		 */
 		void Render(cairo_t *cr, long width, long height);
 
-		long LMARGIN, RMARGIN, TMARGIN, BMARGIN;
-		long LogBase;
-		int OuterBorderWidth;
-		int AxisLineWidth, PlotLineWidth;					// PlotLineWidth only used when drawing line plots
+	public:
+		ChartPanel(wxFrame* parent);
+
 		AXIS_TYPE XAxisType, YAxisType;
 		PLOT_TYPE PlotType;
 		COLOUR ChartBackgroundColour, ChartBorderColour;	// alpha channel ignored!
 		COLOUR AxisLineColour, PlotColour;
 
-		const float *dataSrcX, *dataSrcY;
-		size_t dataLength;
-
-	public:
-		ChartPanel(wxFrame* parent);
+		float XMIN, XMAX, YMIN, YMAX;
 
 		void setDataSource(const float *dataSrcX, const float *dataSrcY, const size_t dataLength)
 		{
@@ -68,6 +82,8 @@ class ChartPanel : public wxPanel
 			this->AxisLineWidth = AxisLineWidth;
 			this->PlotLineWidth = PlotLineWidth;
 		}
+
+		void autoScale(void);
 
 		// some useful events
 		/*

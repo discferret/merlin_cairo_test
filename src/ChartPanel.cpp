@@ -31,12 +31,14 @@ void InitColour(COLOUR *co, float r, float g, float b, float a)
 
 ChartPanel::ChartPanel(wxFrame* parent) :
 	wxPanel(parent),
+	dataSrcX(NULL), dataSrcY(NULL), dataLength(0),
 	LMARGIN(5), RMARGIN(5), TMARGIN(5), BMARGIN(5),
 	LogBase(10),
-	OuterBorderWidth(2), AxisLineWidth(1),
+	OuterBorderWidth(2), AxisLineWidth(1), PlotLineWidth(1),
 	XAxisType(AXIS_LIN), YAxisType(AXIS_LIN),
-	PlotType(PLOT_LINE),
-	dataSrcX(NULL), dataSrcY(NULL)
+	PlotType(PLOT_SCATTER),
+	XMIN(0.0), XMAX(1.0),
+	YMIN(0.0), YMAX(1.0)
 {
 	// Initialise colour parameters
 	InitColour(&ChartBorderColour, 0.0, 0.0, 0.0, 1.0);
@@ -52,7 +54,6 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 //		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, /*0.20*/1.0-(241.0/255.0));
 		InitColour(&PlotColour, 0.0/255.0, 86.0/255.0, 245.0/255.0, 0.20);
 	}
-	PlotLineWidth = 1;
 
 	// Set up event handlers
 	Connect(this->GetId(),
@@ -61,6 +62,41 @@ ChartPanel::ChartPanel(wxFrame* parent) :
 	Connect(wxID_ANY,
 			wxEVT_PAINT,
 			wxPaintEventHandler(ChartPanel::OnPaint));
+}
+
+
+/**
+ * Auto-scale the chart.
+ */
+void ChartPanel::autoScale(void)
+{
+	// FIXME - sanity check - dataLength > 0, dataSrcY != 0
+	if ((dataLength < 1) || (dataSrcY == NULL)) {
+		// FIXME throw something sane
+		throw 1;
+	}
+
+	// find X and Y data minima and maxima
+	float _XMIN = INFINITY, _YMIN=INFINITY;
+	float _XMAX = -INFINITY, _YMAX=-INFINITY;
+	for (size_t i=0; i<this->dataLength; i++) {
+		// If no X data is provided, use the offset pointer
+		float x = (this->dataSrcX != NULL) ? ((float)this->dataSrcX[i]) : ((float)i);
+		// Y data must be provided :)
+		float y = ((float)this->dataSrcY[i]);
+		if (x < _XMIN) _XMIN = x;
+		if (x > _XMAX) _XMAX = x;
+		if (y < _YMIN) _YMIN = y;
+		if (y > _YMAX) _YMAX = y;
+	}
+
+#ifdef DEBUG
+	cout << "XMin=" << _XMIN << ", XMax=" << _XMAX << ", XRange=" << _XMAX-_XMIN+1 << endl;
+	cout << "YMin=" << _YMIN << ", YMax=" << _YMAX << ", YRange=" << _YMAX-_YMIN+1 << endl;
+#endif
+
+	this->XMIN = _XMIN; this->YMIN = _YMIN;
+	this->XMAX = _XMAX; this->YMAX = _YMAX;
 }
 
 
@@ -134,21 +170,6 @@ void ChartPanel::Render(cairo_t *cr, long width, long height)
 	cairo_set_source_rgb(cr, ChartBorderColour.r, ChartBorderColour.g, ChartBorderColour.b);
 	cairo_set_line_width(cr, OuterBorderWidth);
 	cairo_stroke(cr);
-
-	// find X and Y data minima and maxima
-	float XMIN = INFINITY, YMIN=INFINITY;
-	float XMAX = -INFINITY, YMAX=-INFINITY;
-	for (size_t i=0; i<this->dataLength; i++) {
-		float x = (this->dataSrcX != NULL) ? ((float)this->dataSrcX[i]) : ((float)i);
-		float y = ((float)this->dataSrcY[i]);
-		if (x < XMIN) XMIN = x;
-		if (x > XMAX) XMAX = x;
-		if (y < YMIN) YMIN = y;
-		if (y > YMAX) YMAX = y;
-	}
-
-	cout << "XMin=" << XMIN << ", XMax=" << XMAX << ", XRange=" << XMAX-XMIN+1 << endl;
-	cout << "YMin=" << YMIN << ", YMax=" << YMAX << ", YRange=" << YMAX-YMIN+1 << endl;
 
 	// calculate number of data units per X/Y pixel
 	// one X pixel = xd data units; one Y pixel = yd data units.
