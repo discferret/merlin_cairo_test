@@ -9,7 +9,6 @@
  #include <gtk/gtk.h>
  #include <cairo.h>
 #elif defined(__WXOSX_COCOA__)
- #include "wx/dcgraph.h"
  #include "wx/osx/private.h"
  #include <cairo.h>
  #include <cairo-quartz.h>
