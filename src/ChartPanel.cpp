@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "wx/wx.h"
+#include "wx/dcgraph.h"
 
 #if defined(__WXGTK__)
  #include <gdk/gdk.h>
@@ -155,7 +156,7 @@ void ChartPanel::autoScale(void)
  */
 void ChartPanel::OnPaint(wxPaintEvent & evt)
 {
-	wxPaintDC dc(this);
+	wxPaintDC pdc(this);
 
 	// Get client rect and do a sanity check
 	wxRect rect = GetClientRect();
@@ -166,11 +167,22 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 	}
 
 #if defined(__WXGTK__)
-	// If we're running on wxGTK (GTK widget kit) then we can grab the GDKWindow
-	// and feed it straight to Cairo.
-	cairo_t* cr = gdk_cairo_create(dc.GetGDKWindow());
+	wxGCDC gdc;
+	wxGraphicsRenderer * const renderer = wxGraphicsRenderer::GetCairoRenderer();
+	wxGraphicsContext *context = renderer->CreateContext(pdc);
+	gdc.SetGraphicsContext(context);
+
+	cairo_t *cr = (cairo_t*)context->GetNativeContext();
+	wxASSERT(cr != NULL);
+
+	if(context == 0)
+	{
+		return;
+	}
+
+
 #elif defined(__WXOSX_COCOA__)
-	CGContextRef context = (CGContextRef) static_cast<wxGCDCImpl *>(dc.GetImpl())->GetGraphicsContext()->GetNativeContext();
+	CGContextRef context = (CGContextRef) static_cast<wxGCDCImpl *>(pdc.GetImpl())->GetGraphicsContext()->GetNativeContext();
 
 	if(context == 0)
 	{
@@ -191,7 +203,7 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 #endif
 
 	// we're done with the cairo reference. destroy it.
-	cairo_destroy(cr);
+	//cairo_destroy(cr);
 }
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
