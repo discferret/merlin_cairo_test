@@ -215,8 +215,7 @@ endif
 # Linux target-specific settings
 ####
 ifeq ($(strip $(PLATFORM)),linux)
-    # GTK is required on Linux
-    ENABLE_GTK := yes
+	# None needed
 endif
 
 
@@ -345,9 +344,9 @@ endif
 # GTK support
 ####
 ifeq ($(ENABLE_GTK),yes)
-	LIBLNK		+=	`pkg-config gtk+-2.0 --libs`
-	CFLAGS		+=	`pkg-config gtk+-2.0 --cflags`
-	CXXFLAGS	+=	`pkg-config gtk+-2.0 --cflags`
+	LIBLNK		+=	`pkg-config gtk+-3.0 --libs`
+	CFLAGS		+=	`pkg-config gtk+-3.0 --cflags`
+	CXXFLAGS	+=	`pkg-config gtk+-3.0 --cflags`
 endif
 
 ####

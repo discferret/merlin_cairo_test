@@ -5,8 +5,6 @@
 #include "wx/dcgraph.h"
 
 #if defined(__WXGTK__)
- #include <gdk/gdk.h>
- #include <gtk/gtk.h>
  #include <cairo.h>
 #elif defined(__WXOSX_COCOA__)
  #include "wx/osx/private.h"
@@ -166,6 +164,15 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 	}
 
 #if defined(__WXGTK__)
+	// Borrowed from https://stackoverflow.com/questions/10084687/wxbufferedpaintdc-getgraphicscontext-return-null-pointer
+	// In theory this should work on wxMSW too
+	// maybe see https://lists.cairographics.org/archives/cairo/2014-January/024980.html
+	//
+	// But practically speaking we should port this code to wxGraphicsContext per:
+	// https://github.com/wxWidgets/wxWidgets/blob/master/samples/drawing/drawing.cpp
+	// https://docs.wxwidgets.org/3.0/classwx_graphics_context.html
+	//
+	// This would remove the need for Cairo on MSW as it'd use the native Windows GDI library
 	wxGCDC gdc;
 	wxGraphicsRenderer * const renderer = wxGraphicsRenderer::GetCairoRenderer();
 	wxGraphicsContext *context = renderer->CreateContext(pdc);
@@ -173,13 +180,6 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 
 	cairo_t *cr = (cairo_t*)context->GetNativeContext();
 	wxASSERT(cr != NULL);
-
-	if(context == 0)
-	{
-		return;
-	}
-
-
 #elif defined(__WXOSX_COCOA__)
 	CGContextRef context = (CGContextRef) static_cast<wxGCDCImpl *>(pdc.GetImpl())->GetGraphicsContext()->GetNativeContext();
 
@@ -199,10 +199,11 @@ void ChartPanel::OnPaint(wxPaintEvent & evt)
 	cairo_surface_flush(cairo_surface);
 	CGContextFlush( context );
 	cairo_surface_destroy(cairo_surface);
-#endif
 
 	// we're done with the cairo reference. destroy it.
-	//cairo_destroy(cr);
+	cairo_destroy(cr);
+#endif
+
 }
 
 void ChartPanel::Render(cairo_t *cr, long width, long height)
